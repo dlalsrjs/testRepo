@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}홈{% endblock %}
+
+{% block content %}
+<div class="px-4 py-5 my-5 text-center">
+    <h1 class="display-5 fw-bold">My Collection</h1>
+    <div class="col-lg-8 mx-auto">
+        <p class="lead mb-4">데이터 관리 시스템에 오신 것을 환영합니다.</p>
+        
+        <div class="card my-4 shadow-sm">
+            <div class="card-header">
+                <h5 class="my-0 fw-normal">데이터 현황</h5>
+            </div>
+            <div class="card-body">
+                <div class="row justify-content-center align-items-center mb-4 border-bottom pb-4">
+                    <div class="col-auto">
+                        <h6 class="text-muted">총 데이터</h6>
+                        <h3 class="display-6">{{ total_count|floatformat:"0" }}개</h3>
+                    </div>
+                    <div class="col-auto text-muted" style="font-size: 2.5rem;">|</div>
+                    <div class="col-auto">
+                        <h6 class="text-muted">총 사용 용량</h6>
+                        <h3 class="display-6">{{ grand_total_size }}</h3>
+                    </div>
+                    <div class="col-12 mt-3">
+                        <div class="progress mx-auto" style="height: 25px; font-size: 0.85rem; max-width: 400px;">
+                            <div class="progress-bar" role="progressbar" style="width: {{ total_db_percentage }}%;" title="DB 행: {{ total_db_percentage|floatformat:2 }}%">
+                                {{ total_db_percentage|floatformat:2 }}%
+                            </div>
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ total_image_percentage }}%;" title="이미지: {{ total_image_percentage|floatformat:2 }}%">
+                                {{ total_image_percentage|floatformat:2 }}%
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-center mt-1">
+                            <div class="me-3"><i class="bi bi-square-fill text-primary"></i> DB 행 ({{ total_db_size }})</div>
+                            <div><i class="bi bi-square-fill text-success"></i> 이미지 ({{ total_image_size }})</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row text-start">
+                    <div class="col-md-6">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center p-0">
+                                <a href="{% url 'persons:japanese_actor_list' %}" class="list-group-item-action text-decoration-none text-dark p-3 flex-grow-1">
+                                    <i class="bi bi-person-video me-2"></i>일본 배우
+                                </a>
+                                <span class="badge bg-primary rounded-pill me-3">{{ counts.japanese_actors|floatformat:"0" }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary size-detail-btn me-2" data-bs-toggle="modal" data-bs-target="#sizeDetailModal" data-url="{% url 'core:size_details' model_name='japaneseactor' %}">
+                                    {{ sizes.japaneseactor }} <i class="bi bi-info-circle"></i>
+                                </button>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center p-0">
+                                <a href="{% url 'persons:korean_person_list' %}" class="list-group-item-action text-decoration-none text-dark p-3 flex-grow-1">
+                                    <i class="bi bi-person-badge me-2"></i>한국 인물
+                                </a>
+                                <span class="badge bg-primary rounded-pill me-3">{{ counts.korean_persons|floatformat:"0" }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary size-detail-btn me-2" data-bs-toggle="modal" data-bs-target="#sizeDetailModal" data-url="{% url 'core:size_details' model_name='koreanperson' %}">
+                                    {{ sizes.koreanperson }} <i class="bi bi-info-circle"></i>
+                                </button>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center p-0">
+                                <a href="{% url 'videos:japanese_work_list' %}" class="list-group-item-action text-decoration-none text-dark p-3 flex-grow-1">
+                                    <i class="bi bi-film me-2"></i>일본 작품
+                                </a>
+                                <span class="badge bg-primary rounded-pill me-3">{{ counts.japanese_works|floatformat:"0" }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary size-detail-btn me-2" data-bs-toggle="modal" data-bs-target="#sizeDetailModal" data-url="{% url 'core:size_details' model_name='japanesework' %}">
+                                    {{ sizes.japanesework }} <i class="bi bi-info-circle"></i>
+                                </button>
+                            </li>
+                             <li class="list-group-item d-flex justify-content-between align-items-center p-0">
+                                <a href="{% url 'videos:korean_video_list' %}" class="list-group-item-action text-decoration-none text-dark p-3 flex-grow-1">
+                                    <i class="bi bi-camera-reels me-2"></i>한국 영상
+                                </a>
+                                <span class="badge bg-primary rounded-pill me-3">{{ counts.korean_videos|floatformat:"0" }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary size-detail-btn me-2" data-bs-toggle="modal" data-bs-target="#sizeDetailModal" data-url="{% url 'core:size_details' model_name='koreanvideo' %}">
+                                    {{ sizes.koreanvideo }} <i class="bi bi-info-circle"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center p-0">
+                                <a href="{% url 'core:japanese_work_tag_list' %}" class="list-group-item-action text-decoration-none text-dark p-3 flex-grow-1">
+                                    <i class="bi bi-tag-fill me-2"></i>일본 작품 태그
+                                </a>
+                                <span class="badge bg-info text-dark rounded-pill me-3">{{ counts.japanese_work_tags|floatformat:"0" }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary size-detail-btn me-2" data-bs-toggle="modal" data-bs-target="#sizeDetailModal" data-url="{% url 'core:size_details' model_name='japaneseworktag' %}">
+                                    {{ sizes.japaneseworktag }} <i class="bi bi-info-circle"></i>
+                                </button>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center p-0">
+                                <a href="{% url 'core:korean_person_tag_list' %}" class="list-group-item-action text-decoration-none text-dark p-3 flex-grow-1">
+                                    <i class="bi bi-tag-fill me-2"></i>한국 인물 태그
+                                </a>
+                                <span class="badge bg-info text-dark rounded-pill me-3">{{ counts.korean_person_tags|floatformat:"0" }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary size-detail-btn me-2" data-bs-toggle="modal" data-bs-target="#sizeDetailModal" data-url="{% url 'core:size_details' model_name='koreanpersontag' %}">
+                                    {{ sizes.koreanpersontag }} <i class="bi bi-info-circle"></i>
+                                </button>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center p-0">
+                                <a href="{% url 'core:korean_video_theme_list' %}" class="list-group-item-action text-decoration-none text-dark p-3 flex-grow-1">
+                                    <i class="bi bi-hash me-2"></i>한국 영상 주제
+                                </a>
+                                <span class="badge bg-info text-dark rounded-pill me-3">{{ counts.korean_video_themes|floatformat:"0" }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary size-detail-btn me-2" data-bs-toggle="modal" data-bs-target="#sizeDetailModal" data-url="{% url 'core:size_details' model_name='koreanvideotheme' %}">
+                                    {{ sizes.koreanvideotheme }} <i class="bi bi-info-circle"></i>
+                                </button>
+                            </li>
+                             <li class="list-group-item d-flex justify-content-between align-items-center p-0">
+                                <a href="{% url 'core:korean_video_tag_list' %}" class="list-group-item-action text-decoration-none text-dark p-3 flex-grow-1">
+                                    <i class="bi bi-hash me-2"></i>한국 영상 태그
+                                </a>
+                                <span class="badge bg-info text-dark rounded-pill me-3">{{ counts.korean_video_tags|floatformat:"0" }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary size-detail-btn me-2" data-bs-toggle="modal" data-bs-target="#sizeDetailModal" data-url="{% url 'core:size_details' model_name='koreanvideotag' %}">
+                                    {{ sizes.koreanvideotag }} <i class="bi bi-info-circle"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# 모달 창 기본 틀 추가 #}
+<div class="modal fade" id="sizeDetailModal" tabindex="-1" aria-labelledby="sizeDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            {# AJAX로 이 안의 내용이 채워집니다. #}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sizeDetailModal = document.getElementById('sizeDetailModal');
+    if (sizeDetailModal) {
+        sizeDetailModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const url = button.getAttribute('data-url');
+            const modalContent = sizeDetailModal.querySelector('.modal-content');
+            
+            modalContent.innerHTML = `
+                <div class="modal-body text-center p-5">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">상세 정보를 불러오는 중입니다...</p>
+                </div>`;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    modalContent.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error fetching size details:', error);
+                    modalContent.innerHTML = `
+                        <div class="modal-header">
+                            <h5 class="modal-title">오류</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-danger">상세 정보를 불러오는 데 실패했습니다.</p>
+                        </div>
+                         <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                        </div>
+                    `;
+                });
+        });
+    }
+});
+</script>
+{% endblock %}

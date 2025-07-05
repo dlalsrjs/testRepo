@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+
+{% block title %}한국 인물 목록{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">
+        한국 인물 목록 <span class="badge bg-secondary align-middle">{{ persons.paginator.count }}</span>
+    </h1>
+
+    <form method="GET" class="mb-4">
+        <div class="input-group mb-2">
+            <input type="text" name="q" class="form-control" placeholder="이름, 다른 이름, 설명, 외모로 검색..." value="{{ query|default_if_none:'' }}">
+            <button class="btn btn-primary" type="submit">검색</button>
+        </div>
+        <div class="input-group">
+            <input type="text" name="tag" class="form-control" placeholder="태그로 검색..." value="{{ tag_query|default_if_none:'' }}">
+            <button class="btn btn-info" type="submit">태그 검색</button>
+            <a href="{% url 'persons:korean_person_list' %}" class="btn btn-secondary">초기화</a>
+        </div>
+    </form>
+
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mb-4 p-2 border rounded bg-light">
+        <span class="fw-bold me-2">정렬:</span>
+        {% for option in sort_options %}
+            {% if current_sort == option.key %}
+                <a href="?{% if query %}q={{ query }}&{% endif %}{% if tag_query %}tag={{ tag_query }}&{% endif %}sort={{ option.key }}&order={% if current_order == 'asc' %}desc{% else %}asc{% endif %}"
+                   class="btn btn-primary btn-sm">
+                    {{ option.value }}
+                    {% if current_order == 'asc' %}<i class="bi bi-sort-up"></i>{% else %}<i class="bi bi-sort-down"></i>{% endif %}
+                </a>
+            {% else %}
+                <a href="?{% if query %}q={{ query }}&{% endif %}{% if tag_query %}tag={{ tag_query }}&{% endif %}sort={{ option.key }}&order=asc"
+                   class="btn btn-outline-secondary btn-sm">
+                    {{ option.value }}
+                </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    {% if persons.object_list %}
+        <div class="row">
+            {% for person in persons %}
+                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
+                    <div class="person-card" id="person-card-{{ person.pk }}">
+                        <a href="{% url 'persons:view_videos_by_person' pk=person.pk %}" class="card-link-wrapper">
+                            <div class="person-image-container">
+                                {% if person.image %}
+                                    <img src="{{ person.image.url }}" alt="{{ person.name }}" class="person-image">
+                                {% else %}
+                                    <img src="https://via.placeholder.com/280x280?text=No+Image" alt="No Image" class="person-image">
+                                {% endif %}
+                            </div>
+                        </a>
+                        <div class="card-buttons">
+                            <button type="button" class="btn btn-sm btn-light edit-person-btn"
+                                data-bs-toggle="modal" data-bs-target="#editPersonModal"
+                                data-person-id="{{ person.pk }}"
+                                data-edit-url="{% url 'persons:edit_korean_person' pk=person.pk %}">
+                                <i class="bi bi-pencil-fill"></i> 편집
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger delete-person-btn"
+                                data-person-id="{{ person.pk }}"
+                                data-delete-url="{% url 'persons:delete_korean_person' pk=person.pk %}">
+                                <i class="bi bi-trash-fill"></i> 삭제
+                            </button>
+                        </div>
+                        <div class="person-details p-3">
+                            <h5 class="card-title text-center mb-1 person-name">{{ person.name }}</h5>
+                            <p class="card-text text-muted mb-1 small text-center person-other-names">
+                                {% if person.other_names %}
+                                    {{ person.other_names|join:", " }}
+                                {% endif %}
+                            </p>
+                            <p class="card-text text-center text-muted small mb-1">
+                                영상: {{ person.video_count }}개
+                            </p>
+                            <p class="card-text mb-1 small text-center person-years">
+                                {% if person.birth_year %}{{ person.birth_year }}년 출생 {% endif %}
+                            </p>
+                            <p class="card-text mb-1 small text-center person-attributes">
+                                {% if person.looks %}<span class="badge bg-secondary me-1 person-looks">{{ person.looks }}</span>{% endif %}
+                            </p>
+                            {% if person.tags.all %}
+                                <div class="mb-2 text-center person-tags">
+                                    {% for tag in person.tags.all %}
+                                        <a href="{% url 'persons:korean_person_list' %}?tag={{ tag.name|urlencode }}" class="tag-badge-link">
+                                            <span class="tag-badge">{{ tag.name }}</span>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if person.description %}
+                                <p class="card-text small text-truncate-2-lines text-center mt-2 person-description">{{ person.description }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% include 'pagination.html' with page_obj=persons %}
+
+    {% else %}
+        <p>조건에 맞는 한국 인물이 없습니다.</p>
+    {% endif %}
+
+    <div class="modal fade" id="editPersonModal" tabindex="-1" aria-labelledby="editPersonModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<style>
+    .person-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 10px rgba(0,0,0,.08);
+        background-color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        position: relative;
+    }
+    .card-link-wrapper {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        position: relative;
+        z-index: 1;
+    }
+    .person-card:hover .card-link-wrapper {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 15px rgba(0,0,0,.12);
+    }
+    .person-image-container {
+        width: 100%;
+        padding-bottom: 100%;
+        position: relative;
+        overflow: hidden;
+        background-color: #f0f0f0;
+    }
+    .person-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .person-details {
+        flex-grow: 1;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .person-card .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.25rem !important;
+    }
+    .tag-badge {
+        display: inline-block;
+        background-color: #e9ecef;
+        color: #495057;
+        padding: .2em .5em;
+        border-radius: .25rem;
+        font-size: .65em;
+        margin-right: 3px;
+        margin-bottom: 3px;
+        font-weight: 500;
+    }
+    .tag-badge-link {
+        text-decoration: none;
+        color: inherit;
+    }
+    .tag-badge-link .tag-badge:hover {
+        background-color: #cdd2d7;
+    }
+    .text-truncate-2-lines {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .card-buttons {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 100;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        display: flex;
+        gap: 5px;
+    }
+    .person-card:hover .card-buttons {
+        opacity: 1;
+    }
+    .card-buttons .btn {
+        padding: 4px 8px;
+        font-size: 0.75em;
+        line-height: 1;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const editPersonModal = document.getElementById('editPersonModal');
+        const modalContent = editPersonModal.querySelector('.modal-content');
+        let currentPersonCard = null;
+
+        editPersonModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const editUrl = button.getAttribute('data-edit-url');
+            currentPersonCard = document.getElementById(`person-card-${button.getAttribute('data-person-id')}`);
+
+            fetch(editUrl)
+                .then(response => response.text())
+                .then(html => {
+                    modalContent.innerHTML = html;
+                    attachFormSubmitHandler();
+                })
+                .catch(error => {
+                    console.error('Error loading the form:', error);
+                    modalContent.innerHTML = '<div class="alert alert-danger">폼을 로드하는 데 실패했습니다.</div>';
+                });
+        });
+
+        function attachFormSubmitHandler() {
+            const form = modalContent.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            bootstrap.Modal.getInstance(editPersonModal).hide();
+                            updateCard(data);
+                            alert('인물 정보가 성공적으로 업데이트되었습니다!');
+                        } else {
+                            // 폼 유효성 검사 실패 시 에러 처리
+                            const errorData = JSON.parse(data.errors);
+                            let errorHtml = '<p>입력 내용을 확인해주세요:</p><ul class="list-unstyled mb-0">';
+                            for (const field in errorData) {
+                                const label = form.querySelector(`label[for="${form.elements[field]?.id}"]`);
+                                const fieldName = label ? label.innerText : '__all__';
+                                errorData[field].forEach(error => {
+                                    if(fieldName === '__all__') {
+                                        errorHtml += `<li>${error.message}</li>`;
+                                    } else {
+                                        errorHtml += `<li><strong>${fieldName}:</strong> ${error.message}</li>`;
+                                    }
+                                });
+                            }
+                            errorHtml += '</ul>';
+                            
+                            let errorDiv = form.querySelector('.alert.alert-danger');
+                            errorDiv.innerHTML = errorHtml;
+                            errorDiv.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error submitting the form:', error);
+                        alert('데이터 업데이트 중 오류가 발생했습니다.');
+                    });
+                });
+            }
+        }
+        
+        // 카드 정보를 업데이트하는 함수
+        function updateCard(data) {
+             if (!currentPersonCard) return;
+
+            currentPersonCard.querySelector('.person-name').textContent = data.name;
+            currentPersonCard.querySelector('.person-other-names').textContent = data.other_names ? data.other_names.join(', ') : '';
+            currentPersonCard.querySelector('.person-years').textContent = data.birth_year ? `${data.birth_year}년 출생` : '';
+            
+            const looksElement = currentPersonCard.querySelector('.person-looks');
+            if (data.looks) {
+                looksElement.textContent = data.looks;
+                looksElement.style.display = 'inline-block';
+            } else {
+                looksElement.style.display = 'none';
+            }
+            
+            const descElement = currentPersonCard.querySelector('.person-description');
+            if (data.description) {
+                descElement.textContent = data.description;
+                descElement.style.display = 'block';
+            } else if (descElement) {
+                descElement.textContent = '';
+                descElement.style.display = 'none';
+            }
+
+            const tagsContainer = currentPersonCard.querySelector('.person-tags');
+            tagsContainer.innerHTML = '';
+            if (data.tags && data.tags.length > 0) {
+                data.tags.forEach(tagName => {
+                    const tagLink = document.createElement('a');
+                    const encodedTagName = encodeURIComponent(tagName);
+                    tagLink.href = `/persons/korean_persons/?tag=${encodedTagName}`;
+                    tagLink.className = 'tag-badge-link';
+                    tagLink.innerHTML = `<span class="tag-badge">${tagName}</span>`;
+                    tagsContainer.appendChild(tagLink);
+                });
+            }
+
+            const imgElement = currentPersonCard.querySelector('.person-image');
+            if (imgElement && data.image_url) {
+                imgElement.src = data.image_url;
+            } else if (imgElement) {
+                imgElement.src = 'https://via.placeholder.com/280x280?text=No+Image';
+            }
+        }
+
+        // 삭제 버튼 로직
+        document.querySelectorAll('.delete-person-btn').forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.stopPropagation();
+                const personId = this.getAttribute('data-person-id');
+                const deleteUrl = this.getAttribute('data-delete-url');
+                const personName = this.closest('.person-card').querySelector('.person-name').textContent;
+
+                if (confirm(`정말로 인물 '${personName}'을(를) 삭제하시겠습니까?`)) {
+                    fetch(deleteUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json'
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            this.closest('.col').remove();
+                            alert(data.message);
+                        } else {
+                            alert('삭제 실패: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('삭제 중 오류 발생:', error);
+                        alert('인물 삭제 중 알 수 없는 오류가 발생했습니다.');
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,567 @@
+{% extends 'base.html' %}
+
+{% block title %}일본 작품 목록{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">
+        일본 작품 목록 <span class="badge bg-secondary align-middle">{{ works.paginator.count }}</span>
+    </h1>
+
+    <form method="GET" class="mb-4">
+        <div class="input-group mb-2">
+            <input type="text" name="q" class="form-control" placeholder="품번, 평가, URL로 검색..." value="{{ query|default_if_none:'' }}">
+            <button class="btn btn-primary" type="submit">검색</button>
+        </div>
+        <div class="input-group">
+            <input type="text" name="tag" class="form-control" placeholder="태그로 검색..." value="{{ tag_query|default_if_none:'' }}">
+            <button class="btn btn-info" type="submit">태그 검색</button>
+            <a href="{% url 'videos:japanese_work_list' %}" class="btn btn-secondary">초기화</a>
+        </div>
+    </form>
+
+    {# 정렬 버튼 영역 (수정됨) #}
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mb-4 p-2 border rounded bg-light">
+        <span class="fw-bold me-2">정렬:</span>
+        {# sort_options가 존재하는지 확인하는 디버깅용 메시지 (문제가 해결되면 지워도 됩니다) #}
+        {% for option in sort_options %}
+            {% if current_sort == option.key %}
+                <a href="?{{ base_params_encoded }}&sort={{ option.key }}&order={% if current_order == 'asc' %}desc{% else %}asc{% endif %}"
+                   class="btn btn-primary btn-sm">
+                    {{ option.value }}
+                    {% if current_order == 'asc' %}<i class="bi bi-sort-up"></i>{% else %}<i class="bi bi-sort-down"></i>{% endif %}
+                </a>
+            {% else %}
+                <a href="?{{ base_params_encoded }}&sort={{ option.key }}&order=asc"
+                   class="btn btn-outline-secondary btn-sm">
+                    {{ option.value }}
+                </a>
+            {% endif %}
+        {% endfor %}
+        <a href="?{{ base_params_encoded }}&sort=random"
+           class="btn {% if current_sort == 'random' %}btn-success{% else %}btn-outline-success{% endif %} btn-sm">
+            <i class="bi bi-shuffle"></i> 랜덤
+        </a>
+    </div>
+
+    {% if works.object_list %}
+        <div class="row">
+            {% for work in works %}
+                {# 카드 내용은 변경 없음 #}
+                <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
+                    <div class="work-card" id="work-card-{{ work.pk }}">
+                        <div class="work-image-container">
+                            {% if work.image %}
+                                <img src="{{ work.image.url }}" alt="{{ work.product_number }}" class="work-image">
+                            {% else %}
+                                <img src="https://via.placeholder.com/280x280?text=No+Image" alt="No Image" class="work-image">
+                            {% endif %}
+                            <div class="card-buttons">
+                                <button type="button" class="btn btn-sm btn-light edit-work-btn"
+                                    data-bs-toggle="modal" data-bs-target="#editWorkModal"
+                                    data-work-id="{{ work.pk }}"
+                                    data-edit-url="{% url 'videos:edit_japanese_work' pk=work.pk %}">
+                                    <i class="bi bi-pencil-fill"></i> 편집
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger delete-work-btn"
+                                    data-work-id="{{ work.pk }}"
+                                    data-delete-url="{% url 'videos:delete_japanese_work' pk=work.pk %}">
+                                    <i class="bi bi-trash-fill"></i> 삭제
+                                </button>
+                            </div>
+                        </div>
+                        <div class="work-details p-3">
+                            <h5 class="card-title text-center mb-1 work-product-number">{{ work.product_number }}</h5>
+                            <p class="card-text text-center mb-1 small work-years">
+                                {% if work.release_year %}{{ work.release_year }}년 출시 {% endif %}
+                                {% if work.work_hardness %}| 하드함: {{ work.work_hardness }}/5 {% endif %}
+                            </p>
+                            {% if work.rating %}<p class="card-text text-center mb-2 small text-truncate-1-line work-rating">평가: {{ work.rating }}</p>{% endif %}
+                            {% if work.urls %}
+                                <div class="mb-2 text-center work-urls">
+                                    {% for url_item in work.urls %}
+                                        <a href="#" class="badge bg-secondary text-decoration-none me-1 youtube-url-link"
+                                           data-original-url="{{ url_item }}">Link {{ forloop.counter }}</a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if work.actors.all %}
+                                <div class="mb-2 text-center work-actors">
+                                    <small class="text-muted">배우:</small><br>
+                                    {% for actor in work.actors.all %}
+                                        <a href="{% url 'persons:japanese_actor_list' %}?q={{ actor.name|urlencode }}" class="actor-badge-link">
+                                            <span class="actor-badge">{{ actor.name }}</span>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if work.tags.all %}
+                                <div class="mb-1 text-center work-tags">
+                                    <small class="text-muted">태그:</small><br>
+                                    {% for tag in work.tags.all %}
+                                        <a href="{% url 'videos:japanese_work_list' %}?tag={{ tag.name|urlencode }}" class="tag-badge-link">
+                                            <span class="tag-badge">{{ tag.name }}</span>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        {% include 'pagination.html' with page_obj=works %}
+
+    {% else %}
+        <p>조건에 맞는 일본 작품이 없습니다.</p>
+    {% endif %}
+
+    <div class="modal fade" id="editWorkModal" tabindex="-1" aria-labelledby="editWorkModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<style>
+    /* 기존 CSS 유지 */
+    .work-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 10px rgba(0,0,0,.08);
+        background-color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        position: relative;
+    }
+    .work-image-container {
+        width: 100%;
+        padding-bottom: 100%; /* 1:1 비율을 유지 */
+        position: relative;
+        overflow: hidden;
+        background-color: #f0f0f0;
+    }
+    .work-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .work-details {
+        flex-grow: 1;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .work-card .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.25rem !important;
+    }
+    .work-card .card-text {
+        color: #666;
+        line-height: 1.3;
+    }
+    .work-card .small {
+        font-size: 0.75em;
+    }
+    .actor-badge, .tag-badge {
+        display: inline-block;
+        background-color: #e9ecef;
+        color: #495057;
+        padding: .2em .5em;
+        border-radius: .25rem;
+        font-size: .65em;
+        margin-right: 3px;
+        margin-bottom: 3px;
+        font-weight: 500;
+    }
+    .tag-badge-link, .actor-badge-link {
+        text-decoration: none;
+        color: inherit;
+    }
+    .tag-badge-link .tag-badge:hover, .actor-badge-link .actor-badge:hover {
+        background-color: #cdd2d7;
+    }
+
+    .badge {
+        font-size: 0.7em;
+        padding: .25em .5em;
+    }
+    .youtube-url-link {
+        color: white !important; /* 링크 텍스트 색상을 흰색으로 강제 */
+        background-color: #dc3545; /* YouTube 색상 (빨강) */
+    }
+    .youtube-url-link:hover {
+        background-color: #c82333;
+    }
+
+    .text-truncate-1-line {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .card-buttons {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 100;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        display: flex;
+        gap: 5px;
+    }
+    .work-card:hover .card-buttons {
+        opacity: 1;
+    }
+    .card-buttons .btn {
+        padding: 4px 8px;
+        font-size: 0.75em;
+        line-height: 1;
+    }
+    .card-buttons .btn i {
+        margin-right: 3px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // YouTube URL 변환 함수 (JavaScript)
+    function convertToStandardYouTubeUrlJS(url) {
+        if (!url) return null;
+        // 다양한 YouTube URL 패턴 (Shorts 포함)
+        const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|.+\?v=|shorts\/)([a-zA-Z0-9_-]{11})(?:.*)/;
+        const match = url.match(youtubeRegex);
+        if (match && match[1]) {
+            return `https://www.youtube.com/watch?v=${match[1]}`;
+        }
+        return url; // 변환 실패 시 원본 URL 반환
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // 편집 모달 관련 스크립트 (기존 내용 유지)
+        const editWorkModal = document.getElementById('editWorkModal');
+        const modalContent = editWorkModal.querySelector('.modal-content');
+        let currentWorkCard = null;
+
+        editWorkModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const editUrl = button.getAttribute('data-edit-url');
+            const workId = button.getAttribute('data-work-id');
+            currentWorkCard = document.getElementById(`work-card-${workId}`);
+
+            fetch(editUrl)
+                .then(response => response.text())
+                .then(html => {
+                    modalContent.innerHTML = html;
+                    const form = modalContent.querySelector('#workEditForm');
+                    if (form) {
+                        form.action = editUrl;
+                    }
+                    attachFormSubmitHandler();
+                })
+                .catch(error => {
+                    console.error('Error loading the form:', error);
+                    modalContent.innerHTML = '<div class="alert alert-danger">폼을 로드하는 데 실패했습니다.</div>';
+                });
+        });
+
+        function attachFormSubmitHandler() {
+            const form = modalContent.querySelector('#workEditForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    const formData = new FormData(form);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken')
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => { throw err; });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            const modalInstance = bootstrap.Modal.getInstance(editWorkModal);
+                            modalInstance.hide();
+
+                            if (currentWorkCard) {
+                                currentWorkCard.querySelector('.work-product-number').textContent = data.product_number;
+                                currentWorkCard.querySelector('.work-years').innerHTML = `${data.release_year ? data.release_year + '년 출시 ' : ''}${data.work_hardness ? '| 하드함: ' + data.work_hardness + '/5 ' : ''}`;
+                                
+                                const ratingElement = currentWorkCard.querySelector('.work-rating');
+                                if (data.rating) {
+                                    ratingElement.textContent = `평가: ${data.rating}`;
+                                } else {
+                                    ratingElement.textContent = '';
+                                }
+
+                                const urlsContainer = currentWorkCard.querySelector('.work-urls');
+                                urlsContainer.innerHTML = ''; // 기존 내용 지우기
+                                if (data.urls && data.urls.length > 0) {
+                                    data.urls.forEach((url, index) => {
+                                        urlsContainer.innerHTML += `
+                                            <a href="#" class="badge bg-secondary text-decoration-none me-1 youtube-url-link"
+                                               data-original-url="${url}">Link ${index + 1}</a>
+                                        `;
+                                    });
+                                    // 새로 추가된 링크에도 이벤트 핸들러를 다시 붙여줍니다.
+                                    attachYoutubeLinkHandlers(currentWorkCard);
+                                }
+                                
+                                const actorsContainer = currentWorkCard.querySelector('.work-actors');
+                                actorsContainer.innerHTML = '';
+                                if (data.actors && data.actors.length > 0) {
+                                    actorsContainer.innerHTML += '<small class="text-muted">배우:</small><br>';
+                                    data.actors.forEach(actorName => {
+                                        actorsContainer.innerHTML += `
+                                            <a href="{% url 'persons:japanese_actor_list' %}?q=${encodeURIComponent(actorName)}" class="actor-badge-link">
+                                                <span class="actor-badge">${actorName}</span>
+                                            </a>
+                                        `;
+                                    });
+                                }
+
+                                const tagsContainer = currentWorkCard.querySelector('.work-tags');
+                                tagsContainer.innerHTML = '';
+                                if (data.tags && data.tags.length > 0) {
+                                    tagsContainer.innerHTML += '<small class="text-muted">태그:</small><br>';
+                                    data.tags.forEach(tagName => {
+                                        tagsContainer.innerHTML += `
+                                            <a href="{% url 'videos:japanese_work_list' %}?tag=${encodeURIComponent(tagName)}" class="tag-badge-link">
+                                                <span class="tag-badge">${tagName}</span>
+                                            </a>
+                                        `;
+                                    });
+                                }
+
+                                const workImageElement = currentWorkCard.querySelector('.work-image');
+                                if (workImageElement && data.image_url) {
+                                    workImageElement.src = data.image_url;
+                                }
+                                alert('일본 작품 정보가 성공적으로 업데이트되었습니다!');
+                            }
+                        } else {
+                            const errorsDiv = modalContent.querySelector('.alert-danger');
+                            if (errorsDiv) {
+                                let errorHtml = '폼에 오류가 있습니다:<ul>';
+                                const errors = JSON.parse(data.errors);
+                                for (const fieldName in errors) {
+                                    errors[fieldName].forEach(error => {
+                                        errorHtml += `<li>${fieldName}: ${error.message}</li>`;
+                                    });
+                                }
+                                errorHtml += '</ul>';
+                                errorsDiv.innerHTML = errorHtml;
+                                errorsDiv.style.display = 'block';
+                            } else {
+                                alert('폼 유효성 검사 실패: ' + JSON.stringify(data.errors));
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error submitting the form:', error);
+                        alert('데이터 업데이트 중 오류가 발생했습니다.');
+                        if (error.errors) {
+                             const errorsDiv = modalContent.querySelector('.alert-danger');
+                             if (errorsDiv) {
+                                 let errorHtml = '폼에 오류가 있습니다:<ul>';
+                                 const errors = JSON.parse(error.errors);
+                                 for (const fieldName in errors) {
+                                     errors[fieldName].forEach(err => {
+                                         errorHtml += `<li>${fieldName}: ${err.message}</li>`;
+                                     });
+                                 }
+                                 errorHtml += '</ul>';
+                                 errorsDiv.innerHTML = errorHtml;
+                                 errorsDiv.style.display = 'block';
+                             }
+                        } else {
+                            modalContent.innerHTML = '<div class="alert alert-danger">폼 제출 중 알 수 없는 오류가 발생했습니다.</div>';
+                        }
+                    });
+                });
+            }
+        }
+
+        function updateCard(data) {
+            if (!currentWorkCard) return;
+
+            const workDetailsContainer = currentWorkCard.querySelector('.work-details');
+            if (!workDetailsContainer) return;
+
+            // 간단한 텍스트 필드 업데이트
+            currentWorkCard.querySelector('.work-product-number').textContent = data.product_number;
+            currentWorkCard.querySelector('.work-years').innerHTML = 
+                `${data.release_year ? data.release_year + '년 출시 ' : ''}${data.work_hardness ? '| 하드함: ' + data.work_hardness + '/5 ' : ''}`;
+
+            // 평가(Rating) 업데이트
+            let ratingEl = workDetailsContainer.querySelector('.work-rating');
+            if (data.rating) {
+                if (!ratingEl) { // 평가 영역이 없으면 새로 생성
+                    ratingEl = document.createElement('p');
+                    ratingEl.className = 'card-text text-center mb-2 small text-truncate-1-line work-rating';
+                    workDetailsContainer.insertBefore(ratingEl, workDetailsContainer.querySelector('.work-urls'));
+                }
+                ratingEl.textContent = `평가: ${data.rating}`;
+            } else if (ratingEl) {
+                ratingEl.remove(); // 데이터가 없으면 영역 제거
+            }
+            
+            // 공통 로직: 컨테이너를 찾거나, 없으면 새로 만드는 함수
+            const findOrCreateContainer = (selector, parent, insertBeforeSelector = null) => {
+                let container = parent.querySelector(selector);
+                if (!container) {
+                    container = document.createElement('div');
+                    container.className = selector.substring(1); // '.' 제거
+                    const refNode = insertBeforeSelector ? parent.querySelector(insertBeforeSelector) : null;
+                    parent.insertBefore(container, refNode);
+                }
+                return container;
+            };
+
+            // URL 업데이트
+            const urlsContainer = findOrCreateContainer('.work-urls', workDetailsContainer, '.work-actors');
+            let urlsHtml = '';
+            if (data.urls && data.urls.length > 0) {
+                data.urls.forEach((url, index) => {
+                    urlsHtml += `<a href="#" class="badge bg-secondary text-decoration-none me-1 youtube-url-link" data-original-url="${url}">Link ${index + 1}</a>`;
+                });
+            }
+            urlsContainer.innerHTML = urlsHtml;
+            if (urlsHtml) attachYoutubeLinkHandlers(urlsContainer);
+
+            // 배우(Actors) 업데이트
+            const actorsContainer = findOrCreateContainer('.work-actors', workDetailsContainer, '.work-tags');
+            let actorsHtml = '';
+            if (data.actors && data.actors.length > 0) {
+                actorsHtml += '<small class="text-muted">배우:</small><br>';
+                data.actors.forEach(actorName => {
+                    actorsHtml += `<a href="/persons/japanese_actors/?q=${encodeURIComponent(actorName)}" class="actor-badge-link"><span class="actor-badge">${actorName}</span></a>`;
+                });
+            }
+            actorsContainer.innerHTML = actorsHtml;
+
+            // 태그(Tags) 업데이트
+            const tagsContainer = findOrCreateContainer('.work-tags', workDetailsContainer);
+            let tagsHtml = '';
+            if (data.tags && data.tags.length > 0) {
+                tagsHtml += '<small class="text-muted">태그:</small><br>';
+                data.tags.forEach(tagName => {
+                    tagsHtml += `<a href="/videos/japanese_works/?tag=${encodeURIComponent(tagName)}" class="tag-badge-link"><span class="tag-badge">${tagName}</span></a>`;
+                });
+            }
+            tagsContainer.innerHTML = tagsHtml;
+            
+            // 이미지 업데이트
+            const workImageElement = currentWorkCard.querySelector('.work-image');
+            if (workImageElement && data.image_url) {
+                workImageElement.src = data.image_url;
+            } else if (workImageElement) {
+                workImageElement.src = 'https://via.placeholder.com/280x280?text=No+Image';
+            }
+        }
+
+        // 삭제 버튼 스크립트
+        document.querySelectorAll('.delete-work-btn').forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.stopPropagation();
+                const workId = this.getAttribute('data-work-id');
+                const deleteUrl = this.getAttribute('data-delete-url');
+                const productNumber = this.closest('.work-card').querySelector('.work-product-number').textContent;
+
+                if (confirm(`정말로 작품 '${productNumber}'을(를) 삭제하시겠습니까?`)) {
+                    fetch(deleteUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json'
+                        },
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => { throw err; });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            const cardToRemove = document.getElementById(`work-card-${workId}`).closest('.col');
+                            if(cardToRemove) {
+                                cardToRemove.remove();
+                            }
+                            alert(data.message);
+                        } else {
+                            alert('삭제 실패: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('삭제 중 오류 발생:', error);
+                        alert('작품 삭제 중 알 수 없는 오류가 발생했습니다.');
+                    });
+                }
+            });
+        });
+
+        // YouTube URL 링크 클릭 핸들러 (새로운 스크립트)
+        function attachYoutubeLinkHandlers(parentElement) {
+            parentElement.querySelectorAll('.youtube-url-link').forEach(link => {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault(); // 기본 링크 동작 방지
+                    event.stopPropagation(); // 부모 요소로 이벤트 전파 방지 (카드 클릭 등)
+
+                    const originalUrl = this.getAttribute('data-original-url');
+                    const standardUrl = convertToStandardYouTubeUrlJS(originalUrl); // JavaScript 함수 호출
+
+                    if (standardUrl) {
+                        window.open(standardUrl, '_blank'); // 새 탭에서 열기
+                    } else {
+                        alert('유효한 유튜브 URL이 아닙니다.');
+                        console.warn('Invalid YouTube URL:', originalUrl);
+                    }
+                });
+            });
+        }
+        
+        // 페이지 로드 시 전체 문서에 대해 이벤트 핸들러 부착
+        attachYoutubeLinkHandlers(document);
+
+        // CSRF 토큰을 가져오는 함수
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}

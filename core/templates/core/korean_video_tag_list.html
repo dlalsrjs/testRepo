@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+{% block title %}한국 영상 태그 목록{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">
+        한국 영상 태그 목록 <span class="badge bg-secondary align-middle">{{ tags.paginator.count }}</span>
+    </h1>
+
+    <form method="GET" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="태그명으로 검색..." value="{{ query|default_if_none:'' }}">
+            <button class="btn btn-primary" type="submit">검색</button>
+            <a href="{% url 'core:korean_video_tag_list' %}" class="btn btn-secondary">초기화</a>
+        </div>
+    </form>
+
+    {# {% if tags %} 대신 {% if tags.object_list %}를 사용하여 실제 아이템이 있는지 확인하는 것이 더 명확합니다. #}
+    {# 'tags' 변수는 이제 Django Paginator의 Page 객체입니다. #}
+    {% if tags.object_list %}
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 g-4">
+            {% for tag in tags %} {# Page 객체를 직접 순회하면 현재 페이지 아이템들이 순회됨 #}
+                <div class="col">
+                    <div class="tag-card h-100" id="tag-card-{{ tag.pk }}">
+                        <a href="{% url 'videos:korean_video_list' %}?tag={{ tag.name|urlencode }}" class="tag-card-link-wrapper"> {# 한국 영상 목록으로 연결 #}
+                            <div class="tag-image-container">
+                                {% if tag.image %}
+                                    <img src="{{ tag.image.url }}" alt="{{ tag.name }}" class="tag-image">
+                                {% else %}
+                                    <img src="https://via.placeholder.com/200x200?text=No+Image" alt="No Image" class="tag-image">
+                                {% endif %}
+                            </div>
+                        </a>
+                        <div class="card-buttons">
+                            <button type="button" class="btn btn-sm btn-light edit-tag-btn"
+                                data-bs-toggle="modal" data-bs-target="#editTagModal"
+                                data-tag-id="{{ tag.pk }}"
+                                data-edit-url="{% url 'core:edit_korean_video_tag' pk=tag.pk %}">
+                                <i class="bi bi-pencil-fill"></i> 편집
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger delete-tag-btn"
+                                data-tag-id="{{ tag.pk }}"
+                                data-delete-url="{% url 'core:delete_korean_video_tag' pk=tag.pk %}">
+                                <i class="bi bi-trash-fill"></i> 삭제
+                            </button>
+                        </div>
+                        <div class="card-body text-center p-2">
+                            <h6 class="card-title mb-0 small text-truncate-1-line tag-name">{{ tag.name }}</h6>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        {# ----------- 페이지네이션 포함 (여기 추가) ----------- #}
+        {# 'pagination.html' 템플릿에 Page 객체를 'page_obj' 변수명으로 전달합니다. #}
+        {% include 'pagination.html' with page_obj=tags %}
+        {# -------------------------------------------------- #}
+
+    {% else %}
+        <p>조건에 맞는 한국 영상 태그가 없습니다.</p>
+    {% endif %}
+
+    <div class="modal fade" id="editTagModal" tabindex="-1" aria-labelledby="editTagModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<style>
+    /* CSS는 japanese_work_tag_list.html과 동일합니다. */
+    .tag-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 10px rgba(0,0,0,.08);
+        background-color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        position: relative;
+    }
+    .tag-card-link-wrapper {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .tag-card-link-wrapper:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 15px rgba(0,0,0,.12);
+    }
+    .tag-image-container {
+        width: 100%;
+        padding-bottom: 75%;
+        position: relative;
+        overflow: hidden;
+        background-color: #f0f0f0;
+        border-bottom: 1px solid #eee;
+    }
+    .tag-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .tag-card .card-title {
+        font-size: 0.9em;
+        font-weight: 500;
+        color: #333;
+    }
+    .text-truncate-1-line {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .card-buttons {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 100;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        display: flex;
+        gap: 5px;
+    }
+    .tag-card:hover .card-buttons {
+        opacity: 1;
+    }
+    .card-buttons .btn {
+        padding: 4px 8px;
+        font-size: 0.75em;
+        line-height: 1;
+    }
+    .card-buttons .btn i {
+        margin-right: 3px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const editTagModal = document.getElementById('editTagModal');
+        const modalContent = editTagModal.querySelector('.modal-content');
+        let currentTagCard = null;
+
+        editTagModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const editUrl = button.getAttribute('data-edit-url');
+            const tagId = button.getAttribute('data-tag-id');
+            currentTagCard = document.getElementById(`tag-card-${tagId}`);
+
+            fetch(editUrl)
+                .then(response => response.text())
+                .then(html => {
+                    modalContent.innerHTML = html;
+                    const form = modalContent.querySelector('#tagEditForm');
+                    if (form) {
+                        form.action = editUrl;
+                    }
+                    attachFormSubmitHandler();
+                })
+                .catch(error => {
+                    console.error('Error loading the form:', error);
+                    modalContent.innerHTML = '<div class="alert alert-danger">폼을 로드하는 데 실패했습니다.</div>';
+                });
+        });
+
+        function attachFormSubmitHandler() {
+            const form = modalContent.querySelector('#tagEditForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    const formData = new FormData(form);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken')
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => { throw err; });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            const modalInstance = bootstrap.Modal.getInstance(editTagModal);
+                            modalInstance.hide();
+
+                            if (currentTagCard) {
+                                const tagNameElement = currentTagCard.querySelector('.tag-name');
+                                const tagImageElement = currentTagCard.querySelector('.tag-image');
+
+                                if (tagNameElement) {
+                                    tagNameElement.textContent = data.name;
+                                }
+                                if (tagImageElement && data.image_url) {
+                                    tagImageElement.src = data.image_url;
+                                }
+                                alert('태그가 성공적으로 업데이트되었습니다!');
+                            }
+                        } else {
+                            const errorsDiv = modalContent.querySelector('.alert-danger');
+                            if (errorsDiv) {
+                                let errorHtml = '폼에 오류가 있습니다:<ul>';
+                                const errors = JSON.parse(data.errors);
+                                for (const fieldName in errors) {
+                                    errors[fieldName].forEach(error => {
+                                        errorHtml += `<li>${fieldName}: ${error.message}</li>`;
+                                    });
+                                }
+                                errorHtml += '</ul>';
+                                errorsDiv.innerHTML = errorHtml;
+                                errorsDiv.style.display = 'block';
+                            } else {
+                                alert('폼 유효성 검사 실패: ' + JSON.stringify(data.errors));
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error submitting the form:', error);
+                        alert('데이터 업데이트 중 오류가 발생했습니다.');
+                        if (error.errors) {
+                             const errorsDiv = modalContent.querySelector('.alert-danger');
+                             if (errorsDiv) {
+                                 let errorHtml = '폼에 오류가 있습니다:<ul>';
+                                 const errors = JSON.parse(error.errors);
+                                 for (const fieldName in errors) {
+                                     errors[fieldName].forEach(err => {
+                                         errorHtml += `<li>${fieldName}: ${err.message}</li>`;
+                                     });
+                                 }
+                                 errorHtml += '</ul>';
+                                 errorsDiv.innerHTML = errorHtml;
+                                 errorsDiv.style.display = 'block';
+                             }
+                        } else {
+                            modalContent.innerHTML = '<div class="alert alert-danger">폼 제출 중 알 수 없는 오류가 발생했습니다.</div>';
+                        }
+                    });
+                });
+            }
+        }
+
+        document.querySelectorAll('.delete-tag-btn').forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.stopPropagation();
+                const tagId = this.getAttribute('data-tag-id');
+                const deleteUrl = this.getAttribute('data-delete-url');
+                const tagName = this.closest('.tag-card').querySelector('.tag-name').textContent;
+
+                if (confirm(`정말로 태그 '${tagName}'을(를) 삭제하시겠습니까?`)) {
+                    fetch(deleteUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'Content-Type': 'application/json'
+                        },
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => { throw err; });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            const cardToRemove = document.getElementById(`tag-card-${tagId}`).closest('.col');
+                            if(cardToRemove) {
+                                cardToRemove.remove();
+                            }
+                            alert(data.message);
+                        } else {
+                            alert('삭제 실패: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('삭제 중 오류 발생:', error);
+                        alert('태그 삭제 중 알 수 없는 오류가 발생했습니다.');
+                    });
+                }
+            });
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    });
+</script>
+{% endblock %}

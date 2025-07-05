@@ -1,0 +1,36 @@
+{# persons/templates/persons/edit_person_form.html #}
+
+<form method="post" enctype="multipart/form-data" action="{% url 'persons:edit_korean_person' pk=person.pk %}">
+    <div class="modal-header">
+        <h5 class="modal-title">인물 편집: {{ person.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        {% csrf_token %}
+        
+        {# 폼 제출 실패 시 에러 메시지를 표시할 공간 #}
+        <div class="alert alert-danger" role="alert" style="display: none;"></div>
+
+        {# 폼 필드를 순회하며 자동으로 생성 #}
+        {% for field in form %}
+            <div class="mb-3">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                    <div class="form-text">{{ field.help_text }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        {% if person.image %}
+            <div class="mb-3">
+                <p>현재 이미지:</p>
+                <img src="{{ person.image.url }}" alt="{{ person.name }}" class="img-fluid rounded" style="max-height: 200px;">
+            </div>
+        {% endif %}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+        <button type="submit" class="btn btn-primary">저장하기</button>
+    </div>
+</form>
