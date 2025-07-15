@@ -1,7 +1,7 @@
 # videos/admin.py
 
 from django.contrib import admin
-from .models import JapaneseWork, KoreanVideo
+from .models import JapaneseWork, KoreanVideo, LocalVideo
 
 @admin.register(JapaneseWork)
 class JapaneseWorkAdmin(admin.ModelAdmin):
@@ -24,3 +24,10 @@ class KoreanVideoAdmin(admin.ModelAdmin):
     def get_first_url(self, obj):
         return obj.urls[0] if obj.urls else "No URL"
     get_first_url.short_description = '대표 URL'
+
+@admin.register(LocalVideo)
+class LocalVideoAdmin(admin.ModelAdmin):
+    list_display = ('uuid', 'description')
+    search_fields = ('uuid__icontains', 'description', 'persons__name')
+    filter_horizontal = ('persons',)
+    autocomplete_fields = ['persons']

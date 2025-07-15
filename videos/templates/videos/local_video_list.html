@@ -82,7 +82,23 @@
         <p class="text-center">조건에 맞는 로컬 영상이 없습니다.</p>
     {% endif %}
 
-    <div class="modal fade" id="editVideoModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"></div></div></div>
+    <div class="modal fade" id="editVideoModal" tabindex="-1" aria-labelledby="editVideoModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editVideoModalLabel">로컬 영상 수정</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="editVideoModalBody">
+            </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+            <button type="button" class="btn btn-primary" id="saveVideoChangesBtn">저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade" id="imageModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-body p-0"><img src="" class="img-fluid w-100" id="modalImage" alt="크게 보기"></div></div></div></div>
 {% endblock %}
 
@@ -110,89 +126,99 @@
 {# JavaScript는 변경할 필요가 없습니다. #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const csrftoken = getCookie('csrftoken');
-    const editVideoModal = document.getElementById('editVideoModal');
-    const editModal = new bootstrap.Modal(editVideoModal);
+    // --- 공통 변수 설정 ---
+    const editModalEl = document.getElementById('editVideoModal');
+    const editModal = new bootstrap.Modal(editModalEl);
+    const editModalBody = document.getElementById('editVideoModalBody');
+    const saveButton = document.getElementById('saveVideoChangesBtn');
+    const imageModalEl = document.getElementById('imageModal');
+    let currentVideoId = null; // 현재 수정 중인 비디오의 ID를 저장할 변수
 
-    document.querySelectorAll('.edit-video-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            fetch(this.dataset.editUrl)
+    // --- 수정 버튼 클릭 이벤트 처리 ---
+    // 이벤트 위임을 사용하여, 비디오 목록 전체에 하나의 이벤트 리스너만 설정합니다.
+    document.querySelector('.row').addEventListener('click', function(event) {
+        const editBtn = event.target.closest('.edit-video-btn');
+        if (editBtn) {
+            currentVideoId = editBtn.dataset.videoId;
+            const editUrl = editBtn.dataset.editUrl;
+
+            // 서버에서 수정 폼 HTML을 가져옵니다.
+            fetch(editUrl)
                 .then(response => response.text())
                 .then(html => {
-                    editVideoModal.querySelector('.modal-content').innerHTML = html;
-                    attachFormSubmitHandler(editVideoModal.querySelector('form'));
+                    // 모달 본문에 폼을 삽입하고 모달을 엽니다.
+                    editModalBody.innerHTML = html;
                     editModal.show();
                 });
+        }
+    });
+
+    // --- 모달의 '저장' 버튼 클릭 이벤트 처리 ---
+    saveButton.addEventListener('click', function() {
+        const form = editModalBody.querySelector('form');
+        if (!form) return;
+
+        const formData = new FormData(form);
+        const editUrl = `/videos/local_videos/${currentVideoId}/edit/`;
+
+        // FormData를 서버로 전송합니다.
+        fetch(editUrl, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                // Django의 CSRF 보호를 위해 토큰을 헤더에 추가해야 합니다.
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                editModal.hide(); // 성공 시 모달을 닫고
+                location.reload(); // 페이지를 새로고침하여 변경사항을 반영합니다.
+            } else {
+                alert('저장 실패: ' + JSON.stringify(data.errors));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('저장 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
         });
     });
 
-    function attachFormSubmitHandler(form) {
-        if (!form) return;
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            fetch(form.action, {
-                method: 'POST',
-                body: new FormData(form),
-                headers: { 'X-CSRFToken': csrftoken, 'Accept': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    editModal.hide();
-                    alert('성공적으로 업데이트되었습니다.');
-                    window.location.reload();
-                } else {
-                    alert('오류가 발생했습니다: ' + JSON.stringify(data.errors));
-                }
-            });
-        });
-    }
-
-    document.querySelectorAll('.delete-video-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const videoId = this.dataset.videoId;
+    // --- 삭제 버튼 클릭 이벤트 처리 ---
+    document.querySelector('.row').addEventListener('click', function(event) {
+        const deleteBtn = event.target.closest('.delete-video-btn');
+        if(deleteBtn) {
+            event.stopPropagation();
+            const videoId = deleteBtn.dataset.videoId;
             if (confirm(`정말로 이 영상(UUID: ${videoId})을 삭제하시겠습니까?`)) {
-                fetch(this.dataset.deleteUrl, {
+                fetch(deleteBtn.dataset.deleteUrl, {
                     method: 'POST',
-                    headers: { 'X-CSRFToken': csrftoken, 'Accept': 'application/json' }
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Accept': 'application/json'
+                    }
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        const cardContainer = document.getElementById(`card-container-${videoId}`);
-                        if (cardContainer) cardContainer.remove();
+                        document.getElementById(`card-container-${videoId}`).remove();
                         alert('삭제되었습니다.');
                     } else {
                         alert('삭제에 실패했습니다: ' + (data.message || ''));
                     }
                 });
             }
-        });
+        }
     });
 
-    const imageModal = document.getElementById('imageModal');
-    if (imageModal) {
-        imageModal.addEventListener('show.bs.modal', function(event) {
+    // --- 이미지 클릭 시 크게 보기 모달 처리 ---
+    if (imageModalEl) {
+        imageModalEl.addEventListener('show.bs.modal', function(event) {
             const trigger = event.relatedTarget;
             const imageUrl = trigger.dataset.imageUrl;
-            imageModal.querySelector('#modalImage').src = imageUrl || 'https://via.placeholder.com/800x800?text=Image+Not+Found';
+            imageModalEl.querySelector('#modalImage').src = imageUrl || '';
         });
-    }
-
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
     }
 });
 </script>

@@ -1,6 +1,6 @@
 # videos/forms.py
 from django import forms
-from .models import JapaneseWork, KoreanVideo
+from .models import JapaneseWork, KoreanVideo, LocalVideo
 # ManyToManyField에 연결될 모델들을 여기서 임포트할 필요가 없습니다. (queryset이 필요 없으므로)
 # from persons.models import JapaneseActor, KoreanPerson
 # from epalist.core.models import JapaneseWorkTag, KoreanVideoTheme, KoreanVideoTag
@@ -114,3 +114,13 @@ class KoreanVideoForm(forms.ModelForm):
                 raise forms.ValidationError(f"'{url_item}' URL은 이미 다른 영상에 존재합니다.")
         
         return urls_list
+    
+class LocalVideoForm(forms.ModelForm):
+    class Meta:
+        model = LocalVideo
+        fields = ['persons', 'description', 'image']
+        widgets = {
+            'persons': forms.SelectMultiple(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'image': forms.FileInput(attrs={'class': 'form-control'}),
+        }

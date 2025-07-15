@@ -1,8 +1,10 @@
 # videos/models.py
+
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from persons.models import JapaneseActor, KoreanPerson
 from core.models import JapaneseWorkTag, KoreanVideoTheme, KoreanVideoTag
+import uuid
 
 # 새로 만든 유틸리티 함수 임포트
 from epalist.utils import get_youtube_thumbnail_url, download_image_to_model_field
@@ -24,7 +26,7 @@ class JapaneseWork(models.Model):
 
     def __str__(self):
         return self.product_number
-    
+
     # save 메서드 오버라이드
     def save(self, *args, **kwargs):
         # 이미지가 없고, URLs가 존재하며 첫 번째 URL이 유튜브 영상일 경우
@@ -42,7 +44,7 @@ class JapaneseWork(models.Model):
                     # 썸네일이 성공적으로 할당되었으므로,
                     # 아래의 super().save()에서 변경사항이 DB에 반영됩니다.
                     pass
-        
+
         super().save(*args, **kwargs) # 최종 저장
 
 class KoreanVideo(models.Model):
@@ -73,5 +75,19 @@ class KoreanVideo(models.Model):
                 downloaded = download_image_to_model_field(youtube_thumbnail_url, self, 'image', file_name_prefix="youtube_video_thumbnail")
                 if downloaded:
                     pass
-        
+
         super().save(*args, **kwargs) # 최종 저장
+
+class LocalVideo(models.Model):
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, verbose_name="UUID")
+    persons = models.ManyToManyField('persons.KoreanPerson', blank=True, verbose_name="인물 목록")
+    description = models.TextField(null=True, blank=True, verbose_name="설명")
+    image = models.ImageField(upload_to='local_videos/', null=True, blank=True, verbose_name="이미지")
+
+    class Meta:
+        verbose_name = "로컬 영상"
+        verbose_name_plural = "로컬 영상들"
+        ordering = ['-uuid']
+
+    def __str__(self):
+        return str(self.uuid)

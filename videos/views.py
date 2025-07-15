@@ -7,8 +7,8 @@ from django.core.paginator import Paginator
 from django.db.models.functions import Coalesce, ExtractYear
 import urllib
 
-from .models import JapaneseWork, KoreanVideo
-from .forms import JapaneseWorkForm, KoreanVideoForm
+from .models import JapaneseWork, KoreanVideo, LocalVideo
+from .forms import JapaneseWorkForm, KoreanVideoForm, LocalVideoForm
 from persons.models import JapaneseActor, KoreanPerson
 
 # 중복 함수를 모두 제거하고, 모든 오류를 수정한 최종 버전입니다.
@@ -217,6 +217,46 @@ def korean_video_list(request):
     }
     return render(request, 'videos/korean_video_list.html', context)
 
+def local_video_list(request):
+    query = request.GET.get('q', '')
+    sort_by = request.GET.get('sort', 'uuid')
+    order = request.GET.get('order', 'desc')
+
+    videos = LocalVideo.objects.all()
+
+    if query:
+        videos = videos.filter(
+            Q(uuid__icontains=query) |
+            Q(description__icontains=query) |
+            Q(persons__name__icontains=query)
+        ).distinct()
+
+    if sort_by == 'random':
+        videos = videos.order_by('?')
+    else:
+        order_expression = F(sort_by).desc(nulls_last=True) if order == 'desc' else F(sort_by).asc(nulls_last=True)
+        videos = videos.order_by(order_expression)
+
+    paginator = Paginator(videos, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    sort_options = [
+        {'key': 'uuid', 'value': 'UUID'},
+    ]
+    
+    base_params = {k: v for k, v in request.GET.items() if k != 'page'}
+
+    context = {
+        'videos': page_obj,
+        'query': query,
+        'current_sort': sort_by,
+        'current_order': order,
+        'sort_options': sort_options,
+        'base_params_encoded': urllib.parse.urlencode(base_params),
+    }
+    return render(request, 'videos/local_video_list.html', context)
+
 
 def edit_japanese_work(request, pk):
     work = get_object_or_404(JapaneseWork, pk=pk)
@@ -274,6 +314,18 @@ def edit_korean_video(request, pk):
         form = KoreanVideoForm(instance=video, initial={'urls': initial_urls})
         return render(request, 'videos/video_edit_modal_content.html', {'form': form, 'video_id': pk})
 
+def edit_local_video(request, pk):
+    video = get_object_or_404(LocalVideo, pk=pk)
+    if request.method == 'POST':
+        form = LocalVideoForm(request.POST, request.FILES, instance=video)
+        if form.is_valid():
+            video = form.save()
+            return JsonResponse({'success': True})
+        else:
+            return JsonResponse({'success': False, 'errors': form.errors.as_json()}, status=400)
+    else:
+        form = LocalVideoForm(instance=video)
+        return render(request, 'videos/_local_video_form.html', {'form': form, 'video': video})
 
 def delete_japanese_work(request, pk):
     work = get_object_or_404(JapaneseWork, pk=pk)
@@ -292,6 +344,16 @@ def delete_korean_video(request, pk):
         try:
             video.delete()
             return JsonResponse({'success': True, 'message': '한국 영상이 성공적으로 삭제되었습니다.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'삭제 중 오류 발생: {str(e)}'}, status=400)
+    return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=405)
+
+def delete_local_video(request, pk):
+    video = get_object_or_404(LocalVideo, pk=pk)
+    if request.method == 'POST':
+        try:
+            video.delete()
+            return JsonResponse({'success': True, 'message': '로컬 영상이 성공적으로 삭제되었습니다.'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'삭제 중 오류 발생: {str(e)}'}, status=400)
     return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=405)
