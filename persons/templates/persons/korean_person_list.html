@@ -43,11 +43,11 @@
                 <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
                     <div class="person-card" id="person-card-{{ person.pk }}">
                         <a href="{% url 'persons:view_videos_by_person' pk=person.pk %}" class="card-link-wrapper">
-                            <div class="person-image-container">
+                            <div class="person-image-container" style="{% if person.image %}background-image: url('{{ person.image.url }}');{% endif %}">
                                 {% if person.image %}
                                     <img src="{{ person.image.url }}" alt="{{ person.name }}" class="person-image">
                                 {% else %}
-                                    <img src="https://via.placeholder.com/280x280?text=No+Image" alt="No Image" class="person-image">
+                                    <img src="https://via.placeholder.com/200x200?text=No+Image" alt="No Image" class="person-image">
                                 {% endif %}
                             </div>
                         </a>
@@ -140,19 +140,37 @@
     }
     .person-image-container {
         width: 100%;
-        padding-bottom: 100%;
+        padding-bottom: 75%; /* 4:3 비율, 1:1 비율을 원하시면 100%로 변경하세요 */
         position: relative;
         overflow: hidden;
-        background-color: #f0f0f0;
+        background-color: #000; /* 어두운 배경색은 블러 효과를 더 잘 보이게 합니다 */
+        background-size: cover;
+        background-position: center;
     }
+
+    .person-image-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: inherit; /* 부모 요소의 배경 이미지를 상속받습니다 */
+        background-size: cover;
+        background-position: center;
+        filter: blur(10px) brightness(0.7); /* 블러 및 밝기 조절 */
+        transform: scale(1.1); /* 가장자리가 흐려지는 것을 방지 */
+    }
+
     .person-image {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        object-fit: contain; /* 이미지가 잘리지 않고 비율에 맞게 조절됩니다 */
         display: block;
+        z-index: 1; /* 이미지가 블러 처리된 배경 위에 오도록 설정 */
     }
     .person-details {
         flex-grow: 1;
