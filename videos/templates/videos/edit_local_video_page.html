@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}로컬 영상 편집{% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>로컬 영상 편집 (UUID: {{ video.uuid }})</h3>
+                    </div>
+                    <div class="card-body">
+                        {# 이전에 만들었던 폼 조각을 여기에 포함시킵니다. #}
+                        {% include 'videos/_local_video_form.html' with form=form %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

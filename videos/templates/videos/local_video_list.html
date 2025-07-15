@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}로컬 영상 목록{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">
+        로컬 영상 목록 <span class="badge bg-secondary align-middle">{{ videos.paginator.count }}</span>
+    </h1>
+
+    <form method="GET" class="mb-4">
+        <div class="input-group mb-2">
+            <input type="text" name="q" class="form-control" placeholder="UUID, 설명, 인물명으로 검색..." value="{{ query|default_if_none:'' }}">
+            <button class="btn btn-primary" type="submit">검색</button>
+            <a href="{% url 'videos:local_video_list' %}" class="btn btn-secondary">초기화</a>
+        </div>
+    </form>
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mb-4 p-2 border rounded bg-light">
+        <span class="fw-bold me-2">정렬:</span>
+        {% for option in sort_options %}
+            {% if current_sort == option.key %}
+                <a href="?{{ base_params_encoded }}&sort={{ option.key }}&order={% if current_order == 'asc' %}desc{% else %}asc{% endif %}" class="btn btn-primary btn-sm">
+                    {{ option.value }} {% if current_order == 'asc' %}<i class="bi bi-sort-up"></i>{% else %}<i class="bi bi-sort-down"></i>{% endif %}
+                </a>
+            {% else %}
+                <a href="?{{ base_params_encoded }}&sort={{ option.key }}&order=asc" class="btn btn-outline-secondary btn-sm">{{ option.value }}</a>
+            {% endif %}
+        {% endfor %}
+        <a href="?{{ base_params_encoded }}&sort=random" class="btn {% if current_sort == 'random' %}btn-success{% else %}btn-outline-success{% endif %} btn-sm">
+            <i class="bi bi-shuffle"></i> 랜덤
+        </a>
+    </div>
+
+    {% if videos %}
+        <div class="row">
+            {% for video in videos %}
+                <div class="col-md-6 col-lg-4 col-xl-3 mb-4" id="card-container-{{ video.pk }}">
+                    <div class="video-card">
+                        
+                        {# 이미지가 있는 경우에만 클릭 가능하고, URL을 포함하도록 수정 #}
+                        {% if video.image %}
+                            <a href="#" class="image-modal-trigger" data-bs-toggle="modal" data-bs-target="#imageModal" data-image-url="{{ video.image.url }}">
+                                <div class="video-image-container" style="background-image: url('{{ video.image.url }}');">
+                                    <img src="{{ video.image.url }}" alt="로컬 영상 썸네일" class="video-image">
+                                </div>
+                            </a>
+                        {% else %}
+                            {# 이미지가 없는 경우, 클릭되지 않는 div로 처리 #}
+                            <div class="video-image-container">
+                                <img src="https://via.placeholder.com/280x280?text=No+Image" alt="No Image" class="video-image">
+                            </div>
+                        {% endif %}
+                        <div class="card-buttons">
+                            <button type="button" class="btn btn-sm btn-light edit-video-btn" data-bs-toggle="modal" data-bs-target="#editVideoModal" data-video-id="{{ video.pk }}" data-edit-url="{% url 'videos:edit_local_video' pk=video.pk %}">
+                                <i class="bi bi-pencil-fill"></i> 편집
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger delete-video-btn" data-video-id="{{ video.pk }}" data-delete-url="{% url 'videos:delete_local_video' pk=video.pk %}">
+                                <i class="bi bi-trash-fill"></i> 삭제
+                            </button>
+                        </div>
+                        <div class="video-details p-3">
+                            <h5 class="card-title text-center mb-1 video-uuid">
+                                <small class="text-muted d-block">UUID</small>{{ video.uuid }}
+                            </h5>
+                            {% if video.description %}<p class="card-text text-center mb-2 small text-truncate-1-line video-description"><strong>설명:</strong> {{ video.description }}</p>{% endif %}
+                            {% if video.persons.all %}
+                                <div class="mb-2 text-center video-persons">
+                                    <small class="text-muted d-block">인물</small>
+                                    {% for person in video.persons.all %}
+                                        <a href="{% url 'persons:korean_person_list' %}?q={{ person.name|urlencode }}" class="person-badge-link">
+                                            <span class="person-badge">{{ person.name }}</span>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% include 'pagination.html' with page_obj=videos %}
+    {% else %}
+        <p class="text-center">조건에 맞는 로컬 영상이 없습니다.</p>
+    {% endif %}
+
+    <div class="modal fade" id="editVideoModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"></div></div></div>
+    <div class="modal fade" id="imageModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-body p-0"><img src="" class="img-fluid w-100" id="modalImage" alt="크게 보기"></div></div></div></div>
+{% endblock %}
+
+
+{% block extra_css %}
+{# CSS는 변경할 필요가 없습니다. #}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<style>
+    .video-card { border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,.08); background-color: #ffffff; display: flex; flex-direction: column; height: 100%; position: relative; }
+    .video-image-container { width: 100%; padding-bottom: 100%; position: relative; overflow: hidden; background-color: #000; }
+    .video-image-container::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: inherit; background-size: cover; background-position: center; filter: blur(10px) brightness(0.7); transform: scale(1.1); }
+    .video-image { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; object-fit: contain; z-index: 1; }
+    .video-details { flex-grow: 1; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; }
+    .video-card .card-title { font-size: 0.9rem; font-weight: 600; color: #333; margin-bottom: 0.25rem !important; word-break: break-all; }
+    .person-badge { display: inline-block; background-color: #e9ecef; color: #495057; padding: .2em .5em; border-radius: .25rem; font-size: .75em; margin-right: 3px; margin-bottom: 3px; }
+    .card-buttons { position: absolute; top: 8px; right: 8px; z-index: 10; opacity: 0; transition: opacity 0.2s ease; display: flex; gap: 5px; }
+    .video-card:hover .card-buttons { opacity: 1; }
+    .image-modal-trigger { cursor: pointer; text-decoration: none; display: block; }
+    #imageModal .modal-body { background-color: #000; }
+</style>
+{% endblock %}
+
+
+{% block extra_js %}
+{# JavaScript는 변경할 필요가 없습니다. #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrftoken = getCookie('csrftoken');
+    const editVideoModal = document.getElementById('editVideoModal');
+    const editModal = new bootstrap.Modal(editVideoModal);
+
+    document.querySelectorAll('.edit-video-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            fetch(this.dataset.editUrl)
+                .then(response => response.text())
+                .then(html => {
+                    editVideoModal.querySelector('.modal-content').innerHTML = html;
+                    attachFormSubmitHandler(editVideoModal.querySelector('form'));
+                    editModal.show();
+                });
+        });
+    });
+
+    function attachFormSubmitHandler(form) {
+        if (!form) return;
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-CSRFToken': csrftoken, 'Accept': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    editModal.hide();
+                    alert('성공적으로 업데이트되었습니다.');
+                    window.location.reload();
+                } else {
+                    alert('오류가 발생했습니다: ' + JSON.stringify(data.errors));
+                }
+            });
+        });
+    }
+
+    document.querySelectorAll('.delete-video-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const videoId = this.dataset.videoId;
+            if (confirm(`정말로 이 영상(UUID: ${videoId})을 삭제하시겠습니까?`)) {
+                fetch(this.dataset.deleteUrl, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken, 'Accept': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const cardContainer = document.getElementById(`card-container-${videoId}`);
+                        if (cardContainer) cardContainer.remove();
+                        alert('삭제되었습니다.');
+                    } else {
+                        alert('삭제에 실패했습니다: ' + (data.message || ''));
+                    }
+                });
+            }
+        });
+    });
+
+    const imageModal = document.getElementById('imageModal');
+    if (imageModal) {
+        imageModal.addEventListener('show.bs.modal', function(event) {
+            const trigger = event.relatedTarget;
+            const imageUrl = trigger.dataset.imageUrl;
+            imageModal.querySelector('#modalImage').src = imageUrl || 'https://via.placeholder.com/800x800?text=Image+Not+Found';
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}
