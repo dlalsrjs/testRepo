@@ -6,8 +6,7 @@ from persons.models import JapaneseActor, KoreanPerson
 from core.models import JapaneseWorkTag, KoreanVideoTheme, KoreanVideoTag
 import uuid
 
-# 새로 만든 유틸리티 함수 임포트
-from epalist.utils import get_youtube_thumbnail_url, download_image_to_model_field
+from epalist.utils import get_youtube_thumbnail_url, get_tiktok_thumbnail_url, download_image_to_model_field
 
 
 class JapaneseWork(models.Model):
@@ -26,29 +25,40 @@ class JapaneseWork(models.Model):
 
     def __str__(self):
         return self.product_number
-
-    # save 메서드 오버라이드
+    
     def save(self, *args, **kwargs):
-        # 이미지가 없고, URLs가 존재하며 첫 번째 URL이 유튜브 영상일 경우
-        if not self.image and self.urls and self.urls[0]:
-            youtube_thumbnail_url = get_youtube_thumbnail_url(self.urls[0])
-            if youtube_thumbnail_url:
-                # 썸네일 다운로드 시도
-                # save()가 호출될 때 self.pk는 이미 있을 수 있으므로 (업데이트 시)
-                # download_image_to_model_field 내에서 save()가 호출되도록 하면
-                # 여기서는 별도로 self.pk 존재 여부를 신경 쓸 필요가 없습니다.
-                # 단, download_image_to_model_field에서 save()가 호출되어야 함.
-                # (download_image_to_model_field는 ImageField.save()를 호출하므로 괜찮음)
-                downloaded = download_image_to_model_field(youtube_thumbnail_url, self, 'image', file_name_prefix="youtube_work_thumbnail")
-                if downloaded:
-                    # 썸네일이 성공적으로 할당되었으므로,
-                    # 아래의 super().save()에서 변경사항이 DB에 반영됩니다.
-                    pass
+        is_new = self._state.adding
+        if is_new:
+            super().save(*args, **kwargs)
 
-        super().save(*args, **kwargs) # 최종 저장
+        if not self.image and self.urls and self.urls[0]:
+            url = self.urls[0]
+            thumbnail_url = None
+            crop_needed = False
+            
+            # [최종 수정] 어떤 형태의 유튜브 주소든 인식하도록 조건문 개선
+            if 'youtube.com' in url or 'youtu.be' in url:
+                thumbnail_url = get_youtube_thumbnail_url(url)
+                file_prefix = "youtube_work_thumbnail"
+                crop_needed = True
+            elif 'tiktok.com' in url:
+                thumbnail_url = get_tiktok_thumbnail_url(url)
+                file_prefix = "tiktok_work_thumbnail"
+
+            if thumbnail_url:
+                downloaded = download_image_to_model_field(
+                    thumbnail_url, self, 'image',
+                    file_name_prefix=file_prefix, crop=crop_needed
+                )
+                if downloaded:
+                    super().save(force_update=True)
+                    return
+        if not is_new:
+            super().save(*args, **kwargs)
+
 
 class KoreanVideo(models.Model):
-    urls = ArrayField(models.URLField(), verbose_name="URLs") # null=False로 필수 필드
+    urls = ArrayField(models.URLField(), verbose_name="URLs")
     persons = models.ManyToManyField(KoreanPerson, blank=True, verbose_name="출연 인물 목록")
     themes = models.ManyToManyField(KoreanVideoTheme, blank=True, verbose_name="주제")
     tags = models.ManyToManyField(KoreanVideoTag, blank=True, verbose_name="태그 목록")
@@ -56,7 +66,7 @@ class KoreanVideo(models.Model):
     description = models.TextField(null=True, blank=True, verbose_name="설명")
     image = models.ImageField(upload_to='videos/korean_videos/', null=True, blank=True, verbose_name="이미지")
     edited = models.BooleanField(default=False, verbose_name="편집 여부")
-
+    
     class Meta:
         verbose_name = "한국 영상"
         verbose_name_plural = "한국 영상들"
@@ -66,17 +76,36 @@ class KoreanVideo(models.Model):
             return f"한국 영상: {self.urls[0]}..."
         return f"한국 영상: {self.id}"
 
-    # save 메서드 오버라이드
     def save(self, *args, **kwargs):
-        # 이미지가 없고, URLs가 존재하며 첫 번째 URL이 유튜브 영상일 경우
-        if not self.image and self.urls and self.urls[0]:
-            youtube_thumbnail_url = get_youtube_thumbnail_url(self.urls[0])
-            if youtube_thumbnail_url:
-                downloaded = download_image_to_model_field(youtube_thumbnail_url, self, 'image', file_name_prefix="youtube_video_thumbnail")
-                if downloaded:
-                    pass
+        is_new = self._state.adding
+        if is_new:
+            super().save(*args, **kwargs)
 
-        super().save(*args, **kwargs) # 최종 저장
+        if not self.image and self.urls and self.urls[0]:
+            url = self.urls[0]
+            thumbnail_url = None
+            crop_needed = False
+
+            # [최종 수정] 어떤 형태의 유튜브 주소든 인식하도록 조건문 개선
+            if 'youtube.com' in url or 'youtu.be' in url:
+                thumbnail_url = get_youtube_thumbnail_url(url)
+                file_prefix = "youtube_video_thumbnail"
+                crop_needed = True
+            elif 'tiktok.com' in url:
+                thumbnail_url = get_tiktok_thumbnail_url(url)
+                file_prefix = "tiktok_video_thumbnail"
+
+            if thumbnail_url:
+                downloaded = download_image_to_model_field(
+                    thumbnail_url, self, 'image',
+                    file_name_prefix=file_prefix, crop=crop_needed
+                )
+                if downloaded:
+                    super().save(force_update=True)
+                    return
+        if not is_new:
+            super().save(*args, **kwargs)
+
 
 class LocalVideo(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, verbose_name="UUID")
