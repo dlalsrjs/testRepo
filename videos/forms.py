@@ -2,38 +2,45 @@
 from django import forms
 from .models import JapaneseWork, KoreanVideo, LocalVideo
 # ManyToManyField에 연결될 모델들을 여기서 임포트할 필요가 없습니다. (queryset이 필요 없으므로)
-# from persons.models import JapaneseActor, KoreanPerson
-# from epalist.core.models import JapaneseWorkTag, KoreanVideoTheme, KoreanVideoTag
+from persons.models import JapaneseActor
+from core.models import JapaneseWorkTag
 
 class JapaneseWorkForm(forms.ModelForm):
     urls = forms.CharField(
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '쉼표로 구분하여 URL 입력 (선택 사항)'}),
         required=False
     )
-    
-    # !!! 아래 ModelMultipleChoiceField 명시적 정의를 모두 제거합니다 !!!
-    # actors = forms.ModelMultipleChoiceField(
-    #     queryset=JapaneseActor.objects.all().order_by('name'),
-    #     required=False
-    # )
-    # tags = forms.ModelMultipleChoiceField(
-    #     queryset=JapaneseWorkTag.objects.all().order_by('name'),
-    #     required=False
-    # )
+    # 배우와 태그를 텍스트로 입력받을 필드 추가
+    actors_str = forms.CharField(
+        label="출연 배우 (쉼표로 구분)",
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    tags_str = forms.CharField(
+        label="태그 (쉼표로 구분)",
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
 
     class Meta:
         model = JapaneseWork
-        fields = ['product_number', 'urls', 'actors', 'tags', 'release_year', 'rating', 'work_hardness', 'image']
+        # 기존 fields에서 'actors', 'tags'를 제외하고 새로운 필드 추가
+        fields = ['product_number', 'urls', 'actors_str', 'tags_str', 'release_year', 'rating', 'work_hardness', 'image']
         widgets = {
             'product_number': forms.TextInput(attrs={'class': 'form-control'}),
             'release_year': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '예: 2020'}),
             'rating': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'work_hardness': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5, 'placeholder': '1~5 사이 숫자'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
-            # 'actors', 'tags'는 위에서 명시적으로 정의한 필드가 없으므로 widgets에도 포함하지 않습니다.
-            # Django가 ModelAdmin의 autocomplete_fields를 통해 위젯을 처리할 것입니다.
         }
-    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 폼이 인스턴스를 가질 때, 기존 배우와 태그 목록을 쉼표로 연결하여 보여줌
+        if self.instance and self.instance.pk:
+            self.fields['actors_str'].initial = ','.join([actor.name for actor in self.instance.actors.all()])
+            self.fields['tags_str'].initial = ','.join([tag.name for tag in self.instance.tags.all()])
+
     def clean_urls(self):
         data = self.cleaned_data['urls']
         if not data:
@@ -58,6 +65,29 @@ class JapaneseWorkForm(forms.ModelForm):
                 raise forms.ValidationError(f"'{url_item}' URL은 이미 다른 작품에 존재합니다.")
         
         return urls_list
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        # commit=True일 때만 저장 로직 실행
+        if commit:
+            instance.save()
+
+            # actors_str 필드의 텍스트를 파싱하여 배우(actor) 객체 연결
+            actor_names = [name.strip() for name in self.cleaned_data.get('actors_str', '').split(',') if name.strip()]
+            instance.actors.clear()
+            for name in actor_names:
+                actor, created = JapaneseActor.objects.get_or_create(name=name)
+                instance.actors.add(actor)
+            
+            # tags_str 필드의 텍스트를 파싱하여 태그(tag) 객체 연결
+            tag_names = [name.strip() for name in self.cleaned_data.get('tags_str', '').split(',') if name.strip()]
+            instance.tags.clear()
+            for name in tag_names:
+                tag, created = JapaneseWorkTag.objects.get_or_create(name=name)
+                instance.tags.add(tag)
+        
+        return instance
 
 class KoreanVideoForm(forms.ModelForm):
     urls = forms.CharField(

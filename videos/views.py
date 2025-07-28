@@ -263,6 +263,7 @@ def edit_japanese_work(request, pk):
     if request.method == 'POST':
         form = JapaneseWorkForm(request.POST, request.FILES, instance=work)
         if form.is_valid():
+            # form.save()가 배우와 태그까지 모두 처리
             work = form.save()
             updated_actors = [actor.name for actor in work.actors.all()]
             updated_tags = [tag.name for tag in work.tags.all()]
@@ -271,8 +272,8 @@ def edit_japanese_work(request, pk):
                 'success': True,
                 'product_number': work.product_number,
                 'urls': work.urls if work.urls else [],
-                'actors': updated_actors,
-                'tags': updated_tags,
+                'actors': updated_actors, # 업데이트된 배우 목록
+                'tags': updated_tags,   # 업데이트된 태그 목록
                 'release_year': work.release_year,
                 'rating': work.rating,
                 'work_hardness': work.work_hardness,
@@ -280,7 +281,8 @@ def edit_japanese_work(request, pk):
             })
         else:
             return JsonResponse({'success': False, 'errors': form.errors.as_json()}, status=400)
-    else:
+    else: # GET 요청
+        # form의 __init__ 메서드가 데이터를 채우므로 view에서는 URL만 처리
         initial_urls = ",".join(work.urls) if work.urls else ""
         form = JapaneseWorkForm(instance=work, initial={'urls': initial_urls})
         return render(request, 'videos/work_edit_modal_content.html', {'form': form, 'work_id': pk})
