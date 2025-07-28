@@ -58,79 +58,79 @@
             {% for video in videos %}
                 <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
                     <div class="video-card" id="video-card-{{ video.pk }}">
-                        
                         <a href="javascript:void(0);" class="video-item-link">
-                            <div class="video-image-container" style="{% if video.image %}background-image: url('{{ video.image.url }}');{% endif %}">
+                            <div class="video-image-container">
                                 {% if video.image %}
-                                    <img src="{{ video.image.url }}" alt="{{ video.title }}" class="video-image">
-                                {% else %}
-                                    <img src="https://via.placeholder.com/200x200?text=No+Image" alt="No Image" class="video-image">
+                                    <img src="{{ video.image.url }}" alt="Video thumbnail" class="video-image">
                                 {% endif %}
                             </div>
                         </a>
-
                         <div class="card-buttons">
-                            <button type="button" class="btn btn-sm btn-light edit-video-btn"
-                                    data-bs-toggle="modal" data-bs-target="#editVideoModal"
-                                    data-video-id="{{ video.pk }}"
-                                    data-edit-url="{% url 'videos:edit_korean_video' pk=video.pk %}">
-                                <i class="bi bi-pencil-fill"></i> 편집
+                            <button type="button" class="btn edit-video-btn" data-bs-toggle="modal" data-bs-target="#editVideoModal" data-edit-url="{% url 'videos:edit_korean_video' pk=video.pk %}">
+                                <i class="bi bi-pencil-fill"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-danger delete-video-btn"
-                                    data-video-id="{{ video.pk }}"
-                                    data-delete-url="{% url 'videos:delete_korean_video' pk=video.pk %}">
-                                <i class="bi bi-trash-fill"></i> 삭제
+                            <button type="button" class="btn btn-danger delete-video-btn" data-video-id="{{ video.pk }}" data-delete-url="{% url 'videos:delete_korean_video' pk=video.pk %}">
+                                <i class="bi bi-trash-fill"></i>
                             </button>
                         </div>
-                        <div class="video-details p-3">
-                            <h5 class="card-title text-center mb-1 video-urls-display">
-                                {% if video.urls %}
-                                    {% for url_item in video.urls %}
-                                        <a href="#" class="badge bg-primary text-decoration-none me-1 youtube-url-link"
-                                           data-original-url="{{ url_item }}">URL {{ forloop.counter }}</a>
-                                    {% endfor %}
-                                {% else %}
-                                    영상 ID: {{ video.id }}
-                                {% endif %}
-                            </h5>
-                            <p class="card-text text-center mb-1 small video-info">
-                                {% if video.date %}{{ video.date|date:"Y년 m월 d일" }} {% endif %}<br>
+                        <div class="video-details">
+                            {% if video.description %}
+                                <h5 class="card-title">{{ video.description|truncatechars:50 }}</h5>
+                            {% else %}
+                                <h5 class="card-title">영상 정보</h5>
+                            {% endif %}
+                            <div class="card-info">
+                                {% if video.date %}{{ video.date|date:"Y.m.d" }}{% endif %}
                                 {% if video.age_at_release %}
-                                    | <span class="text-danger fw-bold">당시 나이: {{ video.age_at_release }}세</span>
+                                    • <span class="text-danger fw-bold">당시 {{ video.age_at_release }}세</span>
                                 {% endif %}
-                                편집 여부: <span class="badge {% if video.edited %}bg-success{% else %}bg-danger{% endif %} video-edited">{{ video.edited|yesno:"편집됨,편집 안됨" }}</span>
-                            </p>
-                            {% if video.description %}<p class="card-text text-center mb-2 small text-truncate-1-line video-description">설명: {{ video.description }}</p>{% endif %}
-                            {% if video.persons.all %}
-                                <div class="mb-2 text-center video-persons">
-                                    <small class="text-muted">인물:</small><br>
-                                    {% for person in video.persons.all %}
-                                        <a href="{% url 'persons:korean_person_list' %}?q={{ person.name|urlencode }}" class="person-badge-link">
-                                            <span class="person-badge">{{ person.name }}</span>
-                                        </a>
+                                • <span class="badge {% if video.edited %}bg-success{% else %}bg-secondary{% endif %}">{{ video.edited|yesno:"편집됨,미편집" }}</span>
+                            </div>
+                            {% if video.urls %}
+                                <div class="url-badge-group">
+                                    {% for url_item in video.urls %}
+                                        <a href="{{ url_item }}" target="_blank" class="badge rounded-pill url-badge">URL {{ forloop.counter }}</a>
                                     {% endfor %}
                                 </div>
                             {% endif %}
-                            {% if video.themes.all %}
-                                <div class="mb-2 text-center video-themes">
-                                    <small class="text-muted">주제:</small><br>
-                                    {% for theme in video.themes.all %}
-                                        <a href="{% url 'videos:korean_video_list' %}?theme={{ theme.name|urlencode }}" class="tag-badge-link">
-                                            <span class="theme-badge">{{ theme.name }}</span>
-                                        </a>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                            {% if video.tags.all %}
-                                <div class="mb-1 text-center video-tags">
-                                    <small class="text-muted">태그:</small><br>
-                                    {% for tag in video.tags.all %}
-                                        <a href="{% url 'videos:korean_video_list' %}?tag={{ tag.name|urlencode }}" class="tag-badge-link">
-                                            <span class="tag-badge">{{ tag.name }}</span>
-                                        </a>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
+                            <div class="card-meta-section">
+                                {% if video.persons.all %}
+                                    <div class="mb-2">
+                                        <div class="meta-title">인물</div>
+                                        <div class="badge-group">
+                                            {% for person in video.persons.all %}
+                                                <a href="{% url 'persons:korean_person_list' %}?q={{ person.name|urlencode }}">
+                                                    <span class="badge person-badge">{{ person.name }}</span>
+                                                </a>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                {% if video.themes.all %}
+                                    <div class="mb-2">
+                                        <div class="meta-title">주제</div>
+                                        <div class="badge-group">
+                                            {% for theme in video.themes.all %}
+                                                <a href="{% url 'videos:korean_video_list' %}?theme={{ theme.name|urlencode }}">
+                                                    <span class="badge theme-badge">{{ theme.name }}</span>
+                                                </a>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                {% if video.tags.all %}
+                                    <div>
+                                        <div class="meta-title">태그</div>
+                                        <div class="badge-group">
+                                            {% for tag in video.tags.all %}
+                                                <a href="{% url 'videos:korean_video_list' %}?tag={{ tag.name|urlencode }}">
+                                                    <span class="badge tag-badge">{{ tag.name }}</span>
+                                                </a>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -159,169 +159,161 @@
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <style>
-    /* 기존 CSS 유지 */
-    .video-card {
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        overflow: hidden;
-        margin-bottom: 25px;
-        box-shadow: 0 4px 10px rgba(0,0,0,.08);
+    /* --- 기본 카드 디자인 --- */
+    .video-card, .work-card {
         background-color: #ffffff;
+        border: 1px solid #e9ecef; /* 부드러운 경계선 */
+        border-radius: 12px; /* 둥근 모서리 */
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* 은은한 그림자 */
         display: flex;
         flex-direction: column;
         height: 100%;
         position: relative;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     }
-    .video-image-container {
+    .video-card:hover, .work-card:hover {
+        transform: translateY(-5px); /* 호버 시 살짝 위로 이동 */
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+
+    /* --- 카드 이미지 영역 --- */
+    .video-image-container, .work-image-container {
         width: 100%;
-        padding-bottom: 75%; /* 4:3 비율, 1:1 비율을 원하시면 100%로 변경하세요 */
+        padding-bottom: 75%; /* 4:3 비율 */
         position: relative;
         overflow: hidden;
-        background-color: #000; /* 어두운 배경색은 블러 효과를 더 잘 보이게 합니다 */
-        background-size: cover;
-        background-position: center;
+        background-color: #f8f9fa; /* 이미지 없을 때 배경색 */
     }
-
-    .video-image-container::before {
-        content: '';
+    .video-image, .work-image {
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-image: inherit; /* 부모 요소의 배경 이미지를 상속받습니다 */
-        background-size: cover;
-        background-position: center;
-        filter: blur(10px) brightness(0.7); /* 블러 및 밝기 조절 */
-        transform: scale(1.1); /* 가장자리가 흐려지는 것을 방지 */
-    }
-
-    .video-image {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain; /* 이미지가 잘리지 않고 비율에 맞게 조절됩니다 */
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        object-fit: cover; /* 이미지가 꽉 차도록 설정 */
         display: block;
-        z-index: 1; /* 이미지가 블러 처리된 배경 위에 오도록 설정 */
     }
 
-    .video-details {
+    /* --- 카드 상세 내용 영역 --- */
+    .video-details, .work-details {
         flex-grow: 1;
-        padding: 10px;
+        padding: 16px;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
     }
-    .video-card .card-title {
-        font-size: 1.1rem;
+
+    /* --- 가독성 개선된 타이포그래피 --- */
+    .card-title {
+        font-size: 1.1rem; /* 제목 글씨 크기 */
+        font-weight: 600; /* 굵기 */
+        color: #212529; /* 더 진한 검정색 */
+        margin-bottom: 8px;
+        line-height: 1.4;
+    }
+    .card-info, .card-text {
+        font-size: 0.875rem; /* 본문 글씨 크기 */
+        color: #495057; /* 부드러운 회색 */
+        line-height: 1.5;
+        margin-bottom: 12px;
+    }
+    .card-info .badge {
+        font-size: 0.8rem;
+    }
+    .text-danger {
+        color: #d9534f !important; /* 가독성 좋은 빨간색 */
+    }
+
+    /* --- 배우 및 태그 배지 --- */
+    .card-meta-section {
+        margin-top: auto; /* 메타 정보를 항상 카드 하단에 위치 */
+        padding-top: 12px;
+        border-top: 1px solid #f1f3f5;
+    }
+    .card-meta-section .meta-title {
+        font-size: 0.75rem;
         font-weight: 600;
-        color: #333;
-        margin-bottom: 0.25rem !important;
+        color: #6c757d;
+        margin-bottom: 6px;
     }
-    .video-card .card-text {
-        color: #666;
-        line-height: 1.3;
-    }
-    .video-card .small {
-        font-size: 0.75em;
-    }
-    .person-badge, .theme-badge, .tag-badge {
-        display: inline-block;
-        background-color: #e9ecef;
-        color: #495057;
-        padding: .2em .5em;
-        border-radius: .25rem;
-        font-size: .65em;
-        margin-right: 3px;
-        margin-bottom: 3px;
-        font-weight: 500;
-    }
-    .tag-badge-link, .person-badge-link {
+    .badge-group a {
         text-decoration: none;
-        color: inherit;
     }
-    .tag-badge-link .tag-badge:hover, .person-badge-link .person-badge:hover, .tag-badge-link .theme-badge:hover {
-        background-color: #cdd2d7;
+    .actor-badge, .tag-badge, .theme-badge, .person-badge {
+        display: inline-block;
+        background-color: #f1f3f5;
+        color: #495057;
+        padding: 4px 8px;
+        border-radius: 16px; /* 캡슐 모양 */
+        font-size: 0.75rem;
+        margin: 2px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+    .badge-group a:hover .badge {
+        background-color: #dee2e6;
+        color: #212529;
     }
 
-    .badge {
-        font-size: 0.7em;
-        padding: .25em .5em;
+    /* --- URL 링크 배지 --- */
+    .url-badge-group {
+        margin-bottom: 12px;
     }
-    .youtube-url-link {
-        color: white !important;
-        background-color: #dc3545;
-    }
-    .youtube-url-link:hover {
-        background-color: #c82333;
+    .url-badge {
+        background-color: #0d6efd;
+        color: #fff;
+        padding: 4px 10px;
+        font-size: 0.8rem;
+        text-decoration: none;
     }
 
-    .text-truncate-1-line {
-        display: -webkit-box;
-        -webkit-line-clamp: 1;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+    /* --- 편집/삭제 버튼 --- */
     .card-buttons {
         position: absolute;
-        top: 8px;
-        right: 8px;
-        z-index: 100;
+        top: 12px; right: 12px;
+        z-index: 10;
         opacity: 0;
-        transition: opacity 0.2s ease;
+        transition: opacity 0.2s ease-in-out;
         display: flex;
-        gap: 5px;
+        gap: 6px;
     }
-    .video-card:hover .card-buttons {
+    .video-card:hover .card-buttons, .work-card:hover .card-buttons {
         opacity: 1;
     }
     .card-buttons .btn {
-        padding: 4px 8px;
-        font-size: 0.75em;
-        line-height: 1;
-    }
-    .card-buttons .btn i {
-        margin-right: 3px;
-    }
-    #imageModal.modal {
-        display: none;
-        position: fixed;
-        z-index: 1050; /* 편집 모달(1050)보다 높은 z-index */
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.9);
+        background-color: rgba(0, 0, 0, 0.6);
+        color: white;
+        border: none;
+        border-radius: 50%; /* 원형 버튼 */
+        width: 36px;
+        height: 36px;
+        display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 0.9rem;
+        padding: 0;
     }
+    .card-buttons .btn:hover {
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+    .card-buttons .btn i { margin: 0; }
 
+    /* --- 이미지 모달 (기존과 동일, ID 선택자 사용) --- */
+    #imageModal.modal {
+        display: none; position: fixed; z-index: 1055;
+        left: 0; top: 0; width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.9);
+        align-items: center; justify-content: center;
+    }
     #imageModal .modal-content {
-        margin: auto;
-        display: block;
-        width: auto;
-        max-width: 90%;
-        max-height: 90vh;
+        margin: auto; display: block; width: auto;
+        max-width: 90%; max-height: 90vh;
     }
-
     #imageModal .close {
-        position: absolute;
-        top: 15px;
-        right: 35px;
-        color: #f1f1f1;
-        font-size: 40px;
-        font-weight: bold;
-        transition: 0.3s;
-        cursor: pointer;
+        position: absolute; top: 15px; right: 35px;
+        color: #f1f1f1; font-size: 40px; font-weight: bold;
+        transition: 0.3s; cursor: pointer;
     }
-
-    #imageModal .close:hover,
-    #imageModal .close:focus {
-        color: #bbb;
-        text-decoration: none;
+    #imageModal .close:hover, #imageModal .close:focus {
+        color: #bbb; text-decoration: none;
     }
 </style>
 {% endblock %}

@@ -181,31 +181,34 @@ def local_video_list(request):
     return render(request, 'videos/local_video_list.html', context)
 
 def edit_japanese_work(request, pk):
-    # (기존 코드와 동일)
     work = get_object_or_404(JapaneseWork, pk=pk)
     if request.method == 'POST':
         form = JapaneseWorkForm(request.POST, request.FILES, instance=work)
         if form.is_valid():
-            work = form.save()
-            return JsonResponse({'success': True}) # 성공 시 간단히 응답
+            form.save()
+            # JS에서 페이지를 새로고침하므로 간단한 성공 메시지만 반환
+            return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False, 'errors': form.errors.as_json()}, status=400)
-    else:
+    else: # GET 요청
+        # 폼의 __init__이 대부분 처리하므로 instance만 넘겨도 되지만,
+        # clean_urls과의 일관성을 위해 urls를 initial로 전달하는 것을 유지
         form = JapaneseWorkForm(instance=work)
         return render(request, 'videos/work_edit_modal_content.html', {'form': form, 'work_id': pk})
 
+
 def edit_korean_video(request, pk):
-    # (기존 코드와 동일, 단 반환 데이터에 나이 추가)
     video = get_object_or_404(KoreanVideo, pk=pk)
     if request.method == 'POST':
         form = KoreanVideoForm(request.POST, request.FILES, instance=video)
         if form.is_valid():
-            video = form.save()
-            # 간단하게 성공 여부만 반환하도록 변경 (JS에서 페이지를 새로고침하므로)
+            form.save()
+            # JS에서 페이지를 새로고침하므로 간단한 성공 메시지만 반환
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False, 'errors': form.errors.as_json()}, status=400)
-    else:
+    else: # GET 요청
+        # 폼의 __init__이 관계 필드를 처리하므로 instance만 전달
         form = KoreanVideoForm(instance=video)
         return render(request, 'videos/video_edit_modal_content.html', {'form': form, 'video_id': pk})
 
