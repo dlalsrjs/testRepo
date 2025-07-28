@@ -76,6 +76,9 @@
                             <p class="card-text text-center mb-1 small work-years">
                                 {% if work.release_year %}{{ work.release_year }}년 출시 {% endif %}
                                 {% if work.work_hardness %}| 하드함: {{ work.work_hardness }}/5 {% endif %}
+                                {% if work.age_at_release %}
+                                    | <span class="text-danger fw-bold">당시 나이: {{ work.age_at_release }}세</span>
+                                {% endif %}
                             </p>
                             {% if work.rating %}<p class="card-text text-center mb-2 small text-truncate-1-line work-rating">평가: {{ work.rating }}</p>{% endif %}
                             {% if work.urls %}
@@ -260,7 +263,7 @@
     .card-buttons .btn i {
         margin-right: 3px;
     }
-    
+
     #imageModal.modal {
         display: none; 
         position: fixed;

@@ -95,6 +95,9 @@
                             </h5>
                             <p class="card-text text-center mb-1 small video-info">
                                 {% if video.date %}{{ video.date|date:"Y년 m월 d일" }} {% endif %}<br>
+                                {% if video.age_at_release %}
+                                    | <span class="text-danger fw-bold">당시 나이: {{ video.age_at_release }}세</span>
+                                {% endif %}
                                 편집 여부: <span class="badge {% if video.edited %}bg-success{% else %}bg-danger{% endif %} video-edited">{{ video.edited|yesno:"편집됨,편집 안됨" }}</span>
                             </p>
                             {% if video.description %}<p class="card-text text-center mb-2 small text-truncate-1-line video-description">설명: {{ video.description }}</p>{% endif %}
