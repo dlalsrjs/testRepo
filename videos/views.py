@@ -11,38 +11,43 @@ from .models import JapaneseWork, KoreanVideo, LocalVideo
 from .forms import JapaneseWorkForm, KoreanVideoForm, LocalVideoForm
 from persons.models import JapaneseActor, KoreanPerson
 
+# 1. 일본 작품 목록 뷰
 def japanese_work_list(request):
     query = request.GET.get('q', '')
     tag_query = request.GET.get('tag', '')
-    sort_by = request.GET.get('sort', 'release_year') # 기본 정렬: 출시 연도
+    actor_name_query = request.GET.get('actor_name', '')
+    sort_by = request.GET.get('sort', 'release_year')
     order = request.GET.get('order', 'desc')
 
     works_qs = JapaneseWork.objects.prefetch_related('actors', 'tags').all()
 
+    # --- 검색 필터링 ---
     if query:
         works_qs = works_qs.filter(
             Q(product_number__icontains=query) | Q(rating__icontains=query) | Q(urls__icontains=query)
         ).distinct()
     if tag_query:
         works_qs = works_qs.filter(tags__name__icontains=tag_query).distinct()
+    if actor_name_query:
+        works_qs = works_qs.filter(actors__name__icontains=actor_name_query).distinct()
         
     # --- '당시 나이' 계산을 위한 Annotation ---
-    # 1. 작품에 연결된 배우 중 가장 어린 배우의 출생년도(최소 출생년도)를 찾습니다.
+    # ✨✨✨ 1. 오류가 발생했던 Subquery를 올바르게 수정합니다. ✨✨✨
     min_birth_year_subquery = JapaneseActor.objects.filter(
         japanesework=OuterRef('pk')
-    ).values('japanesework__pk').annotate(min_birth=Min('birth_year')).values('min_birth')
+    ).values('japanesework__pk').annotate(
+        min_birth=Min('birth_year')
+    ).values('min_birth')
 
-    # 2. 위에서 찾은 최소 출생년도를 각 작품에 붙여줍니다.
     works_qs = works_qs.annotate(
-        min_birth_year=Subquery(min_birth_year_subquery)
+        min_birth_year=Subquery(min_birth_year_subquery, output_field=IntegerField())
     )
     
-    # 3. '당시 나이'를 계산합니다. (출시년도 - 최소 출생년도 + 1)
     works_qs = works_qs.annotate(
         age_at_release=Case(
             When(release_year__isnull=False, min_birth_year__isnull=False, 
                  then=F('release_year') - F('min_birth_year') + 1),
-            default=Value(None), # 둘 중 하나라도 없으면 나이 계산 불가 (None)
+            default=Value(None),
             output_field=IntegerField()
         )
     )
@@ -51,10 +56,7 @@ def japanese_work_list(request):
     if sort_by == 'random':
         works_qs = works_qs.order_by('?')
     else:
-        # 'age_at_release' 정렬 옵션 추가
-        sort_field = sort_by if sort_by in ['product_number', 'release_year', 'work_hardness'] else 'release_year'
-        
-        # 나이로 정렬 시, 나이가 없는(None) 작품은 맨 뒤로 보냅니다.
+        sort_field = sort_by if sort_by in ['product_number', 'release_year', 'work_hardness', 'age_at_release'] else 'release_year'
         order_expression = F(sort_field).desc(nulls_last=True) if order == 'desc' else F(sort_field).asc(nulls_last=True)
         works_qs = works_qs.order_by(order_expression, '-pk')
 
@@ -63,16 +65,14 @@ def japanese_work_list(request):
     page_obj = paginator.get_page(page_number)
 
     sort_options = [
-        {'key': 'product_number', 'value': '품번'},
-        {'key': 'release_year', 'value': '출시 연도'},
-        {'key': 'work_hardness', 'value': '하드함'},
-        {'key': 'age_at_release', 'value': '당시 나이'}, # 정렬 옵션 추가
+        {'key': 'product_number', 'value': '품번'}, {'key': 'release_year', 'value': '출시 연도'},
+        {'key': 'work_hardness', 'value': '하드함'}, {'key': 'age_at_release', 'value': '당시 나이'},
     ]
 
-    base_params = {k: v for k, v in request.GET.items() if k not in ['page']}
+    base_params = {k: v for k, v in request.GET.items() if k != 'page'}
     context = {
         'works': page_obj, 'query': query, 'tag_query': tag_query,
-        'current_sort': sort_by, 'current_order': order,
+        'actor_name_query': actor_name_query, 'current_sort': sort_by, 'current_order': order,
         'sort_options': sort_options, 'base_params_encoded': urllib.parse.urlencode(base_params),
     }
     return render(request, 'videos/japanese_work_list.html', context)
@@ -83,26 +83,30 @@ def korean_video_list(request):
     theme_query = request.GET.get('theme', '')
     tag_query = request.GET.get('tag', '')
     edited_query = request.GET.get('edited')
+    person_name_query = request.GET.get('person_name', '')
     sort_by = request.GET.get('sort', 'date')
     order = request.GET.get('order', 'desc')
 
     videos_qs = KoreanVideo.objects.prefetch_related('persons', 'themes', 'tags').all()
     
-    # --- 검색 필터링 (기존과 동일) ---
     filters = Q()
     if query: filters |= (Q(urls__icontains=query) | Q(description__icontains=query))
     if theme_query: filters &= Q(themes__name__icontains=theme_query)
     if tag_query: filters &= Q(tags__name__icontains=tag_query)
     if edited_query in ['true', 'false']: filters &= Q(edited=(edited_query == 'true'))
+    if person_name_query: filters &= Q(persons__name__icontains=person_name_query)
     if filters: videos_qs = videos_qs.filter(filters).distinct()
 
     # --- '당시 나이' 계산을 위한 Annotation ---
+    # ✨✨✨ 2. 오류가 발생했던 Subquery를 올바르게 수정합니다. ✨✨✨
     min_birth_year_subquery = KoreanPerson.objects.filter(
         koreanvideo=OuterRef('pk')
-    ).values('koreanvideo__pk').annotate(min_birth=Min('birth_year')).values('min_birth')
+    ).values('koreanvideo__pk').annotate(
+        min_birth=Min('birth_year')
+    ).values('min_birth')
 
     videos_qs = videos_qs.annotate(
-        min_birth_year=Subquery(min_birth_year_subquery)
+        min_birth_year=Subquery(min_birth_year_subquery, output_field=IntegerField())
     )
 
     videos_qs = videos_qs.annotate(
@@ -118,7 +122,6 @@ def korean_video_list(request):
     if sort_by == 'random':
         videos_qs = videos_qs.order_by('?')
     else:
-        # 'age_at_release' 정렬 옵션 추가
         sort_field = sort_by if sort_by in ['date', 'age_at_release'] else 'date'
         order_expression = F(sort_field).desc(nulls_last=True) if order == 'desc' else F(sort_field).asc(nulls_last=True)
         videos_qs = videos_qs.order_by(order_expression, '-pk')
@@ -127,15 +130,13 @@ def korean_video_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    sort_options = [
-        {'key': 'date', 'value': '날짜'},
-        {'key': 'age_at_release', 'value': '당시 나이'}, # 정렬 옵션 추가
-    ]
+    sort_options = [{'key': 'date', 'value': '날짜'}, {'key': 'age_at_release', 'value': '당시 나이'}]
     
-    base_params = {k: v for k, v in request.GET.items() if k not in ['page']}
+    base_params = {k: v for k, v in request.GET.items() if k != 'page'}
     context = {
         'videos': page_obj, 'query': query, 'theme_query': theme_query, 'tag_query': tag_query,
-        'edited_query': edited_query, 'current_sort': sort_by, 'current_order': order,
+        'edited_query': edited_query, 'person_name_query': person_name_query,
+        'current_sort': sort_by, 'current_order': order,
         'sort_options': sort_options, 'base_params_encoded': urllib.parse.urlencode(base_params),
     }
     return render(request, 'videos/korean_video_list.html', context)

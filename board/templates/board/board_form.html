@@ -1,0 +1,34 @@
+{# /board/templates/board/board_form.html #}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}글 수정{% else %}새 글 작성{% endif %}{% endblock %}
+
+{% block extra_css %}
+    {{ form.media.css }}
+{% endblock %}
+
+{% block content %}
+    <h1>{% if form.instance.pk %}글 수정{% else %}새 글 작성{% endif %}</h1>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="{{ form.title.id_for_label }}" class="form-label">{{ form.title.label }}</label>
+            {{ form.title }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.category.id_for_label }}" class="form-label">{{ form.category.label }}</label>
+            {{ form.category }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.content.id_for_label }}" class="form-label">{{ form.content.label }}</label>
+            {{ form.content }}
+        </div>
+        <button type="submit" class="btn btn-primary">저장</button>
+        <a href="{% if form.instance.pk %}{{ form.instance.get_absolute_url }}{% else %}{% url 'board:post_list' %}{% endif %}" class="btn btn-secondary">취소</a>
+    </form>
+{% endblock %}
+
+{% block extra_js %}
+    {{ form.media.js }}
+{% endblock %}

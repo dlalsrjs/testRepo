@@ -513,37 +513,28 @@
                 event.stopPropagation();
                 const videoId = this.getAttribute('data-video-id');
                 const deleteUrl = this.getAttribute('data-delete-url');
-                const videoIdentifier = this.closest('.video-card').querySelector('.video-urls-display').textContent.trim() || `영상 ID: ${videoId}`;
-
+                const videoIdentifier = this.closest('.video-card').querySelector('.card-title').textContent.trim() || `영상 ID: ${videoId}`;
 
                 if (confirm(`정말로 영상 '${videoIdentifier}'을(를) 삭제하시겠습니까?`)) {
                     fetch(deleteUrl, {
                         method: 'POST',
                         headers: {
-                            'X-CSRFToken': getCookie('csrftoken'),
-                            'Content-Type': 'application/json'
+                            'X-CSRFToken': getCookie('csrftoken')
+                            // ✨ 'Content-Type': 'application/json' 라인을 삭제했습니다.
                         },
                     })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.json().then(err => { throw err; });
-                        }
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            const cardToRemove = document.getElementById(`video-card-${videoId}`).closest('.col');
-                            if(cardToRemove) {
-                                cardToRemove.remove();
-                            }
-                            alert(data.message);
+                            alert('영상이 성공적으로 삭제되었습니다.');
+                            document.getElementById(`video-card-${videoId}`).closest('.col-md-6').remove();
                         } else {
-                            alert('삭제 실패: ' + data.message);
+                            alert('삭제 실패: ' + (data.message || '알 수 없는 오류가 발생했습니다.'));
                         }
                     })
                     .catch(error => {
                         console.error('삭제 중 오류 발생:', error);
-                        alert('영상 삭제 중 알 수 없는 오류가 발생했습니다.');
+                        alert('영상 삭제 중 오류가 발생했습니다.');
                     });
                 }
             });

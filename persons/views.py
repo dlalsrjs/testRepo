@@ -8,9 +8,12 @@ from django.urls import reverse
 from .models import JapaneseActor, KoreanPerson
 from .forms import JapaneseActorForm, KoreanPersonForm # 새로 정의한 폼 임포트
 from django.core.paginator import Paginator
+import urllib
 
+# 1. 일본 배우 목록 뷰
 def japanese_actor_list(request):
     query = request.GET.get('q', '')
+    looks_query = request.GET.get('looks', '')
     sort_by = request.GET.get('sort', 'name')
     order = request.GET.get('order', 'asc')
 
@@ -20,30 +23,24 @@ def japanese_actor_list(request):
 
     if query:
         actors = actors.filter(
-            Q(name__icontains=query) |
-            Q(other_names__icontains=query) |
-            Q(description__icontains=query)
+            Q(name__icontains=query) | Q(other_names__icontains=query) | Q(description__icontains=query)
         )
+    if looks_query:
+        actors = actors.filter(looks=looks_query)
 
-    # 정렬 로직 (기존과 동일)
     if sort_by == 'random':
         actors = actors.order_by('?')
     elif sort_by == 'looks':
         looks_order = Case(
-            When(looks='GOD', then=Value(0)),
-            When(looks='SSS', then=Value(1)),
-            When(looks='SS', then=Value(2)),
-            When(looks='S', then=Value(3)),
-            When(looks='A', then=Value(4)),
-            When(looks='B', then=Value(5)),
-            When(looks='C', then=Value(6)),
-            When(looks='D', then=Value(7)),
-            When(looks='F', then=Value(8)),
-            default=Value(9),
+            When(looks='GOD', then=Value(0)), When(looks='SSS', then=Value(1)),
+            When(looks='SS', then=Value(2)), When(looks='S', then=Value(3)),
+            When(looks='A', then=Value(4)), When(looks='B', then=Value(5)),
+            When(looks='C', then=Value(6)), When(looks='D', then=Value(7)),
+            When(looks='F', then=Value(8)), default=Value(9),
             output_field=IntegerField(),
         )
         order_expression = looks_order.desc() if order == 'desc' else looks_order.asc()
-        actors = actors.order_by(order_expression, 'name') # 2차 정렬 기준 추가
+        actors = actors.order_by(order_expression, 'name')
     elif sort_by in ['name', 'birth_year', 'debut_year', 'hardness', 'work_count']:
         order_expression = F(sort_by).desc(nulls_last=True) if order == 'desc' else F(sort_by).asc(nulls_last=True)
         actors = actors.order_by(order_expression, 'name')
@@ -54,58 +51,57 @@ def japanese_actor_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # 템플릿에서 사용할 정렬 옵션 리스트를 여기서 정의
     sort_options = [
-        {'key': 'name', 'value': '이름'},
-        {'key': 'birth_year', 'value': '출생연도'},
-        {'key': 'debut_year', 'value': '데뷔연도'},
-        {'key': 'work_count', 'value': '작품 개수'},
-        {'key': 'looks', 'value': '외모'},
-        {'key': 'hardness', 'value': '하드함'},
+        {'key': 'name', 'value': '이름'}, {'key': 'birth_year', 'value': '출생연도'},
+        {'key': 'debut_year', 'value': '데뷔연도'}, {'key': 'work_count', 'value': '작품 개수'},
+        {'key': 'looks', 'value': '외모'}, {'key': 'hardness', 'value': '하드함'},
     ]
-
+    
+    # ✨✨✨ 핵심 수정사항 1: 'looks_choices'를 뷰에서 직접 정의합니다. ✨✨✨
+    looks_choices = [
+        ("GOD", "GOD"), ("SSS", "SSS"), ("SS", "SS"), ("S", "S"),
+        ("A", "A"), ("B", "B"), ("C", "C"), ("D", "D"), ("F", "F"),
+    ]
+    
+    base_params = {k: v for k, v in request.GET.items() if k != 'page'}
     context = {
-        'actors': page_obj,
-        'query': query,
-        'current_sort': sort_by,
-        'current_order': order,
-        'sort_options': sort_options,  # 컨텍스트에 추가
+        'actors': page_obj, 'query': query, 'looks_query': looks_query,
+        'looks_choices': looks_choices, # 직접 정의한 리스트를 전달
+        'current_sort': sort_by, 'current_order': order,
+        'sort_options': sort_options, 'base_params_encoded': urllib.parse.urlencode(base_params),
     }
     return render(request, 'persons/japanese_actor_list.html', context)
 
-
+# 2. 한국 인물 목록 뷰
 def korean_person_list(request):
-    # GET 파라미터 가져오기
     query = request.GET.get('q', '')
     tag_query = request.GET.get('tag', '')
+    looks_query = request.GET.get('looks', '')
     sort_by = request.GET.get('sort', 'name')
     order = request.GET.get('order', 'asc')
 
-    # annotate로 영상 개수(video_count)를 계산
     persons = KoreanPerson.objects.all().annotate(
         video_count=Count('koreanvideo', distinct=True)
     )
 
-    # --- 검색 로직 ---
     if query:
         persons = persons.filter(
-            Q(name__icontains=query) |
-            Q(description__icontains=query) |
-            Q(looks__icontains=query) |
-            Q(other_names__icontains=query) # 다른 이름 검색 조건 추가
+            Q(name__icontains=query) | Q(description__icontains=query) |
+            Q(looks__icontains=query) | Q(other_names__icontains=query)
         )
     if tag_query:
         persons = persons.filter(tags__name__icontains=tag_query)
+    if looks_query:
+        persons = persons.filter(looks=looks_query)
 
-    # --- 정렬 로직 ---
     if sort_by == 'looks':
         looks_order_case = Case(
             When(looks='GOD', then=Value(0)), When(looks='SSS', then=Value(1)),
             When(looks='SS', then=Value(2)), When(looks='S', then=Value(3)),
             When(looks='A', then=Value(4)), When(looks='B', then=Value(5)),
             When(looks='C', then=Value(6)), When(looks='D', then=Value(7)),
-            When(looks='F', then=Value(8)),
-            default=Value(9), output_field=IntegerField()
+            When(looks='F', then=Value(8)), default=Value(9),
+            output_field=IntegerField()
         )
         order_expression = looks_order_case.desc() if order == 'desc' else looks_order_case.asc()
         persons = persons.order_by(order_expression, 'name')
@@ -119,21 +115,23 @@ def korean_person_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # 템플릿에 전달할 정렬 옵션 리스트 정의
     sort_options = [
-        {'key': 'name', 'value': '이름'},
-        {'key': 'birth_year', 'value': '출생연도'},
-        {'key': 'looks', 'value': '외모'},
-        {'key': 'video_count', 'value': '영상 개수'},
+        {'key': 'name', 'value': '이름'}, {'key': 'birth_year', 'value': '출생연도'},
+        {'key': 'looks', 'value': '외모'}, {'key': 'video_count', 'value': '영상 개수'},
     ]
     
+    # ✨✨✨ 핵심 수정사항 2: 'looks_choices'를 뷰에서 직접 정의합니다. ✨✨✨
+    looks_choices = [
+        ("GOD", "GOD"), ("SSS", "SSS"), ("SS", "SS"), ("S", "S"),
+        ("A", "A"), ("B", "B"), ("C", "C"), ("D", "D"), ("F", "F"),
+    ]
+    
+    base_params = {k: v for k, v in request.GET.items() if k != 'page'}
     context = {
-        'persons': page_obj,
-        'query': query,
-        'tag_query': tag_query,
-        'current_sort': sort_by,
-        'current_order': order,
-        'sort_options': sort_options,
+        'persons': page_obj, 'query': query, 'tag_query': tag_query, 'looks_query': looks_query,
+        'looks_choices': looks_choices, # 직접 정의한 리스트를 전달
+        'current_sort': sort_by, 'current_order': order,
+        'sort_options': sort_options, 'base_params_encoded': urllib.parse.urlencode(base_params),
     }
     return render(request, 'persons/korean_person_list.html', context)
 

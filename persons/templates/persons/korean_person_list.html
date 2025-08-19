@@ -9,12 +9,16 @@
 
     <form method="GET" class="mb-4">
         <div class="input-group mb-2">
-            <input type="text" name="q" class="form-control" placeholder="이름, 다른 이름, 설명, 외모로 검색..." value="{{ query|default_if_none:'' }}">
+            <input type="text" name="q" class="form-control" placeholder="이름으로 검색..." value="{{ query|default_if_none:'' }}">
+            
+            <select name="looks" class="form-select" style="max-width: 150px;">
+                <option value="">외모 (전체)</option>
+                {% for value, display in looks_choices %}
+                    <option value="{{ value }}" {% if looks_query == value %}selected{% endif %}>{{ display }}</option>
+                {% endfor %}
+            </select>
+            
             <button class="btn btn-primary" type="submit">검색</button>
-        </div>
-        <div class="input-group">
-            <input type="text" name="tag" class="form-control" placeholder="태그로 검색..." value="{{ tag_query|default_if_none:'' }}">
-            <button class="btn btn-info" type="submit">태그 검색</button>
             <a href="{% url 'persons:korean_person_list' %}" class="btn btn-secondary">초기화</a>
         </div>
     </form>

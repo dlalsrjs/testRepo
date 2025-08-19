@@ -26,6 +26,8 @@ urlpatterns = [
     path('persons/', include('persons.urls')), # persons 앱의 URL을 포함
     path('videos/', include('videos.urls')),   # videos 앱의 URL을 포함
     path('core/', include('core.urls')), # core 앱의 URL을 포함 (태그 목록 등을 보여줄 수 있습니다)
+    path('board/', include('board.urls')),
+    path('summernote/', include('django_summernote.urls')),
     # 필요하다면 여기에 기본 랜딩 페이지를 추가할 수 있습니다. 예: path('', some_view, name='home')
 ]
 

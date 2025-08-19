@@ -88,7 +88,7 @@
                                         <div class="meta-title">출연</div>
                                         <div class="badge-group">
                                             {% for actor in work.actors.all %}
-                                                <a href="{% url 'persons:japanese_actor_list' %}?q={{ actor.name|urlencode }}">
+                                                <a href="{% url 'videos:japanese_work_list' %}?actor_name={{ actor.name|urlencode }}">
                                                     <span class="badge actor-badge">{{ actor.name }}</span>
                                                 </a>
                                             {% endfor %}
@@ -546,36 +546,29 @@
                 event.stopPropagation();
                 const workId = this.getAttribute('data-work-id');
                 const deleteUrl = this.getAttribute('data-delete-url');
-                const productNumber = this.closest('.work-card').querySelector('.work-product-number').textContent;
+                const productNumber = this.closest('.work-card').querySelector('.card-title').textContent;
 
                 if (confirm(`정말로 작품 '${productNumber}'을(를) 삭제하시겠습니까?`)) {
                     fetch(deleteUrl, {
                         method: 'POST',
                         headers: {
-                            'X-CSRFToken': getCookie('csrftoken'),
-                            'Content-Type': 'application/json'
+                            'X-CSRFToken': getCookie('csrftoken')
+                            // ✨ 'Content-Type': 'application/json' 라인을 삭제했습니다.
                         },
                     })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.json().then(err => { throw err; });
-                        }
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            const cardToRemove = document.getElementById(`work-card-${workId}`).closest('.col');
-                            if(cardToRemove) {
-                                cardToRemove.remove();
-                            }
-                            alert(data.message);
+                            alert('작품이 성공적으로 삭제되었습니다.');
+                            // 카드를 감싸는 부모 div(.col-...)를 찾아 삭제
+                            document.getElementById(`work-card-${workId}`).closest('.col-md-6').remove();
                         } else {
-                            alert('삭제 실패: ' + data.message);
+                            alert('삭제 실패: ' + (data.message || '알 수 없는 오류가 발생했습니다.'));
                         }
                     })
                     .catch(error => {
                         console.error('삭제 중 오류 발생:', error);
-                        alert('작품 삭제 중 알 수 없는 오류가 발생했습니다.');
+                        alert('작품 삭제 중 오류가 발생했습니다.');
                     });
                 }
             });
