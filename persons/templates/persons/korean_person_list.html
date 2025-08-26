@@ -39,6 +39,10 @@
                 </a>
             {% endif %}
         {% endfor %}
+        <a href="?{% if query %}q={{ query }}&{% endif %}{% if tag_query %}tag={{ tag_query }}&{% endif %}sort=random"
+           class="btn {% if current_sort == 'random' %}btn-success{% else %}btn-outline-success{% endif %} btn-sm">
+            <i class="bi bi-shuffle"></i> 랜덤
+        </a>
     </div>
 
     {% if persons.object_list %}

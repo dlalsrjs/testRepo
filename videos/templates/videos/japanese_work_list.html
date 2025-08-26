@@ -88,7 +88,8 @@
                                         <div class="meta-title">출연</div>
                                         <div class="badge-group">
                                             {% for actor in work.actors.all %}
-                                                <a href="{% url 'videos:japanese_work_list' %}?actor_name={{ actor.name|urlencode }}">
+                                                {# q={{ actor.name|urlencode }} 대신 id={{ actor.pk }} 를 사용하도록 수정 #}
+                                                <a href="{% url 'persons:japanese_actor_list' %}?id={{ actor.pk }}">
                                                     <span class="badge actor-badge">{{ actor.name }}</span>
                                                 </a>
                                             {% endfor %}

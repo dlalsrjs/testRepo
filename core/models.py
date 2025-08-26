@@ -63,3 +63,23 @@ class KoreanVideoTag(models.Model):
 
     def __str__(self):
         return self.name
+
+class JapanesePhotoTag(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="태그명")
+    
+    class Meta:
+        verbose_name = "일본 사진 태그"
+        verbose_name_plural = "일본 사진 태그들"
+
+    def __str__(self):
+        return self.name
+
+class KoreanPhotoTag(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="태그명")
+
+    class Meta:
+        verbose_name = "한국 사진 태그"
+        verbose_name_plural = "한국 사진 태그들"
+
+    def __str__(self):
+        return self.name

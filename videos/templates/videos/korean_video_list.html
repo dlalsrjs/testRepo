@@ -99,7 +99,8 @@
                                         <div class="meta-title">인물</div>
                                         <div class="badge-group">
                                             {% for person in video.persons.all %}
-                                                <a href="{% url 'persons:korean_person_list' %}?q={{ person.name|urlencode }}">
+                                                {# q={{ person.name|urlencode }} 대신 id={{ person.pk }} 를 사용하도록 수정 #}
+                                                <a href="{% url 'persons:korean_person_list' %}?id={{ person.pk }}">
                                                     <span class="badge person-badge">{{ person.name }}</span>
                                                 </a>
                                             {% endfor %}

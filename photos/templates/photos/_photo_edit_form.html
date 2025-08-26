@@ -1,0 +1,42 @@
+<form id="photoEditForm" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="modal-header">
+        <h5 class="modal-title">사진첩 편집</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="alert alert-danger" role="alert" style="display: none;"></div>
+
+        {% for field in form %}
+            <div class="mb-3">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {# new_images 필드일 경우 multiple 속성 추가 #}
+                {% if field.name == 'new_images' %}
+                    <input type="file" name="new_images" multiple class="form-control" id="{{ field.id_for_label }}">
+                {% else %}
+                    {{ field }}
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <hr>
+        <h6>기존 이미지 관리</h6>
+        <div class="row row-cols-3 g-2 mb-3">
+        {% for image in photo_set.images.all %}
+            <div class="col position-relative">
+                <img src="{{ image.image.url }}" class="img-thumbnail" alt="Image {{ image.pk }}">
+                <div class="form-check position-absolute top-0 end-0 p-2 bg-light rounded-start">
+                    <input class="form-check-input delete-image-checkbox" type="checkbox" name="delete_images" value="{{ image.pk }}" id="delete_image_{{ image.pk }}">
+                    <label class="form-check-label small" for="delete_image_{{ image.pk }}">삭제</label>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-muted">이미지가 없습니다.</p>
+        {% endfor %}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+        <button type="submit" class="btn btn-primary">저장</button>
+    </div>
+</form>

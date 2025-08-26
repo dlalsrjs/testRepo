@@ -16,17 +16,23 @@ def japanese_actor_list(request):
     looks_query = request.GET.get('looks', '')
     sort_by = request.GET.get('sort', 'name')
     order = request.GET.get('order', 'asc')
+    # ID로 필터링하기 위한 파라미터 추가
+    actor_id = request.GET.get('id', '')
 
     actors = JapaneseActor.objects.all().annotate(
         work_count=Count('japanesework', distinct=True)
     )
 
-    if query:
-        actors = actors.filter(
-            Q(name__icontains=query) | Q(other_names__icontains=query) | Q(description__icontains=query)
-        )
-    if looks_query:
-        actors = actors.filter(looks=looks_query)
+    # ID가 있으면 ID로만 필터링
+    if actor_id:
+        actors = actors.filter(pk=actor_id)
+    else:
+        if query:
+            actors = actors.filter(
+                Q(name__icontains=query) | Q(other_names__icontains=query) | Q(description__icontains=query)
+            )
+        if looks_query:
+            actors = actors.filter(looks=looks_query)
 
     if sort_by == 'random':
         actors = actors.order_by('?')
@@ -57,7 +63,6 @@ def japanese_actor_list(request):
         {'key': 'looks', 'value': '외모'}, {'key': 'hardness', 'value': '하드함'},
     ]
     
-    # ✨✨✨ 핵심 수정사항 1: 'looks_choices'를 뷰에서 직접 정의합니다. ✨✨✨
     looks_choices = [
         ("GOD", "GOD"), ("SSS", "SSS"), ("SS", "SS"), ("S", "S"),
         ("A", "A"), ("B", "B"), ("C", "C"), ("D", "D"), ("F", "F"),
@@ -66,7 +71,7 @@ def japanese_actor_list(request):
     base_params = {k: v for k, v in request.GET.items() if k != 'page'}
     context = {
         'actors': page_obj, 'query': query, 'looks_query': looks_query,
-        'looks_choices': looks_choices, # 직접 정의한 리스트를 전달
+        'looks_choices': looks_choices,
         'current_sort': sort_by, 'current_order': order,
         'sort_options': sort_options, 'base_params_encoded': urllib.parse.urlencode(base_params),
     }
@@ -79,22 +84,30 @@ def korean_person_list(request):
     looks_query = request.GET.get('looks', '')
     sort_by = request.GET.get('sort', 'name')
     order = request.GET.get('order', 'asc')
+    # ID로 필터링하기 위한 파라미터 추가
+    person_id = request.GET.get('id', '')
 
     persons = KoreanPerson.objects.all().annotate(
         video_count=Count('koreanvideo', distinct=True)
     )
 
-    if query:
-        persons = persons.filter(
-            Q(name__icontains=query) | Q(description__icontains=query) |
-            Q(looks__icontains=query) | Q(other_names__icontains=query)
-        )
-    if tag_query:
-        persons = persons.filter(tags__name__icontains=tag_query)
-    if looks_query:
-        persons = persons.filter(looks=looks_query)
+    # ID가 있으면 ID로만 필터링
+    if person_id:
+        persons = persons.filter(pk=person_id)
+    else:
+        if query:
+            persons = persons.filter(
+                Q(name__icontains=query) | Q(description__icontains=query) |
+                Q(looks__icontains=query) | Q(other_names__icontains=query)
+            )
+        if tag_query:
+            persons = persons.filter(tags__name__icontains=tag_query)
+        if looks_query:
+            persons = persons.filter(looks=looks_query)
 
-    if sort_by == 'looks':
+    if sort_by == 'random':
+        persons = persons.order_by('?')
+    elif sort_by == 'looks':
         looks_order_case = Case(
             When(looks='GOD', then=Value(0)), When(looks='SSS', then=Value(1)),
             When(looks='SS', then=Value(2)), When(looks='S', then=Value(3)),
@@ -120,7 +133,6 @@ def korean_person_list(request):
         {'key': 'looks', 'value': '외모'}, {'key': 'video_count', 'value': '영상 개수'},
     ]
     
-    # ✨✨✨ 핵심 수정사항 2: 'looks_choices'를 뷰에서 직접 정의합니다. ✨✨✨
     looks_choices = [
         ("GOD", "GOD"), ("SSS", "SSS"), ("SS", "SS"), ("S", "S"),
         ("A", "A"), ("B", "B"), ("C", "C"), ("D", "D"), ("F", "F"),
@@ -129,7 +141,7 @@ def korean_person_list(request):
     base_params = {k: v for k, v in request.GET.items() if k != 'page'}
     context = {
         'persons': page_obj, 'query': query, 'tag_query': tag_query, 'looks_query': looks_query,
-        'looks_choices': looks_choices, # 직접 정의한 리스트를 전달
+        'looks_choices': looks_choices,
         'current_sort': sort_by, 'current_order': order,
         'sort_options': sort_options, 'base_params_encoded': urllib.parse.urlencode(base_params),
     }
@@ -232,16 +244,12 @@ def delete_korean_person(request, pk):
     
 def view_works_by_actor(request, pk):
     actor = get_object_or_404(JapaneseActor, pk=pk)
-    # reverse를 사용하여 기본 URL을 얻은 후 쿼리 파라미터를 수동으로 추가
     base_url = reverse('videos:japanese_work_list')
-    # 쿼리 파라미터는 actor_name_query 대신 q 파라미터를 사용해도 됩니다.
-    # 하지만 명시적으로 actor_name_query를 받는 것이 더 명확할 수 있습니다.
-    # (videos/views.py에서 actor_name_query로 받도록 이미 수정했기 때문)
-    return redirect(f"{base_url}?actor_name={actor.name}")
+    # 이름 대신 actor_id 파라미터로 배우의 pk를 전달
+    return redirect(f"{base_url}?actor_id={actor.pk}")
 
 def view_videos_by_person(request, pk):
     person = get_object_or_404(KoreanPerson, pk=pk)
-    # reverse를 사용하여 기본 URL을 얻은 후 쿼리 파라미터를 수동으로 추가
     base_url = reverse('videos:korean_video_list')
-    # 마찬가지로 person_name_query를 받는 것이 명확합니다.
-    return redirect(f"{base_url}?person_name={person.name}")
+    # 이름 대신 person_id 파라미터로 인물의 pk를 전달
+    return redirect(f"{base_url}?person_id={person.pk}")

@@ -15,7 +15,8 @@ from persons.models import JapaneseActor, KoreanPerson
 def japanese_work_list(request):
     query = request.GET.get('q', '')
     tag_query = request.GET.get('tag', '')
-    actor_name_query = request.GET.get('actor_name', '')
+    # actor_name_query 대신 actor_id를 받도록 수정
+    actor_id = request.GET.get('actor_id', '')
     sort_by = request.GET.get('sort', 'release_year')
     order = request.GET.get('order', 'desc')
 
@@ -28,11 +29,11 @@ def japanese_work_list(request):
         ).distinct()
     if tag_query:
         works_qs = works_qs.filter(tags__name__icontains=tag_query).distinct()
-    if actor_name_query:
-        works_qs = works_qs.filter(actors__name__icontains=actor_name_query).distinct()
+    # actor_id가 있으면 해당 배우의 작품만 필터링
+    if actor_id:
+        works_qs = works_qs.filter(actors__pk=actor_id).distinct()
         
     # --- '당시 나이' 계산을 위한 Annotation ---
-    # ✨✨✨ 1. 오류가 발생했던 Subquery를 올바르게 수정합니다. ✨✨✨
     min_birth_year_subquery = JapaneseActor.objects.filter(
         japanesework=OuterRef('pk')
     ).values('japanesework__pk').annotate(
@@ -72,7 +73,8 @@ def japanese_work_list(request):
     base_params = {k: v for k, v in request.GET.items() if k != 'page'}
     context = {
         'works': page_obj, 'query': query, 'tag_query': tag_query,
-        'actor_name_query': actor_name_query, 'current_sort': sort_by, 'current_order': order,
+        # actor_name_query 대신 actor_id를 context에 전달 (필요 시)
+        'actor_id': actor_id, 'current_sort': sort_by, 'current_order': order,
         'sort_options': sort_options, 'base_params_encoded': urllib.parse.urlencode(base_params),
     }
     return render(request, 'videos/japanese_work_list.html', context)
@@ -83,7 +85,8 @@ def korean_video_list(request):
     theme_query = request.GET.get('theme', '')
     tag_query = request.GET.get('tag', '')
     edited_query = request.GET.get('edited')
-    person_name_query = request.GET.get('person_name', '')
+    # person_name_query 대신 person_id를 받도록 수정
+    person_id = request.GET.get('person_id', '')
     sort_by = request.GET.get('sort', 'date')
     order = request.GET.get('order', 'desc')
 
@@ -94,11 +97,11 @@ def korean_video_list(request):
     if theme_query: filters &= Q(themes__name__icontains=theme_query)
     if tag_query: filters &= Q(tags__name__icontains=tag_query)
     if edited_query in ['true', 'false']: filters &= Q(edited=(edited_query == 'true'))
-    if person_name_query: filters &= Q(persons__name__icontains=person_name_query)
+    # person_id가 있으면 해당 인물의 영상만 필터링
+    if person_id: filters &= Q(persons__pk=person_id)
     if filters: videos_qs = videos_qs.filter(filters).distinct()
 
     # --- '당시 나이' 계산을 위한 Annotation ---
-    # ✨✨✨ 2. 오류가 발생했던 Subquery를 올바르게 수정합니다. ✨✨✨
     min_birth_year_subquery = KoreanPerson.objects.filter(
         koreanvideo=OuterRef('pk')
     ).values('koreanvideo__pk').annotate(
@@ -135,7 +138,7 @@ def korean_video_list(request):
     base_params = {k: v for k, v in request.GET.items() if k != 'page'}
     context = {
         'videos': page_obj, 'query': query, 'theme_query': theme_query, 'tag_query': tag_query,
-        'edited_query': edited_query, 'person_name_query': person_name_query,
+        'edited_query': edited_query, 'person_id': person_id,
         'current_sort': sort_by, 'current_order': order,
         'sort_options': sort_options, 'base_params_encoded': urllib.parse.urlencode(base_params),
     }

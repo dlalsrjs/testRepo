@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'core',
     'persons',
     'videos',
+    'photos',
     'board',
     'django_summernote',
 ]
