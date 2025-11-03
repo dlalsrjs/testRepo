@@ -18,7 +18,6 @@ urlpatterns = [
     path('korean_video_themes/<int:pk>/edit/', views.edit_korean_video_theme, name='edit_korean_video_theme'),
     path('korean_video_tags/<int:pk>/edit/', views.edit_korean_video_tag, name='edit_korean_video_tag'),
 
-    # ----------- 삭제 URL 추가 -----------
     path('japanese_work_tags/<int:pk>/delete/', views.delete_japanese_work_tag, name='delete_japanese_work_tag'),
     path('korean_person_tags/<int:pk>/delete/', views.delete_korean_person_tag, name='delete_korean_person_tag'),
     path('korean_video_themes/<int:pk>/delete/', views.delete_korean_video_theme, name='delete_korean_video_theme'),
