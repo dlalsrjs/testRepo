@@ -18,6 +18,7 @@ class JapaneseWork(models.Model):
     rating = models.TextField(null=True, blank=True, verbose_name="평가")
     work_hardness = models.IntegerField(null=True, blank=True, verbose_name="작품 하드함") # 1~5 범위 숫자
     image = models.ImageField(upload_to='works/japanese_works/', null=True, blank=True, verbose_name="이미지")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
 
     class Meta:
         verbose_name = "일본 작품"
@@ -66,7 +67,8 @@ class KoreanVideo(models.Model):
     description = models.TextField(null=True, blank=True, verbose_name="설명")
     image = models.ImageField(upload_to='videos/korean_videos/', null=True, blank=True, verbose_name="이미지")
     edited = models.BooleanField(default=False, verbose_name="편집 여부")
-    
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
+
     class Meta:
         verbose_name = "한국 영상"
         verbose_name_plural = "한국 영상들"
@@ -112,6 +114,7 @@ class LocalVideo(models.Model):
     persons = models.ManyToManyField('persons.KoreanPerson', blank=True, verbose_name="인물 목록")
     description = models.TextField(null=True, blank=True, verbose_name="설명")
     image = models.ImageField(upload_to='local_videos/', null=True, blank=True, verbose_name="이미지")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
 
     class Meta:
         verbose_name = "로컬 영상"

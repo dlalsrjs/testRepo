@@ -18,6 +18,7 @@
         <div class="card-footer text-end">
             <a href="{% url 'board:post_list' %}" class="btn btn-secondary">목록</a>
             <a href="{% url 'board:post_edit' pk=post.pk %}" class="btn btn-primary">수정</a>
+            <a href="{% url 'board:post_delete' pk=post.pk %}" class="btn btn-danger">삭제</a>
         </div>
     </div>
 {% endblock %}

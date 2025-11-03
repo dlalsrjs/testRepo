@@ -73,33 +73,38 @@
                             </button>
                         </div>
                         <div class="person-details p-3">
-                            <h5 class="card-title text-center mb-1 person-name">{{ person.name }}</h5>
-                            <p class="card-text text-muted mb-1 small text-center person-other-names">
-                                {% if person.other_names %}
-                                    {{ person.other_names|join:", " }}
+                            <div>
+                                <h5 class="card-title text-center mb-1 person-name">{{ person.name }}</h5>
+                                <p class="card-text text-muted mb-1 small text-center person-other-names">
+                                    {% if person.other_names %}
+                                        {{ person.other_names|join:", " }}
+                                    {% endif %}
+                                </p>
+                                <p class="card-text text-center text-muted small mb-1">
+                                    영상: {{ person.video_count }}개
+                                </p>
+                                <p class="card-text mb-1 small text-center person-years">
+                                    {% if person.birth_year %}{{ person.birth_year }}년 출생 {% endif %}
+                                </p>
+                                <p class="card-text mb-1 small text-center person-attributes">
+                                    {% if person.looks %}<span class="badge bg-secondary me-1 person-looks">{{ person.looks }}</span>{% endif %}
+                                </p>
+                                {% if person.tags.all %}
+                                    <div class="mb-2 text-center person-tags">
+                                        {% for tag in person.tags.all %}
+                                            <a href="{% url 'persons:korean_person_list' %}?tag={{ tag.name|urlencode }}" class="tag-badge-link">
+                                                <span class="tag-badge">{{ tag.name }}</span>
+                                            </a>
+                                        {% endfor %}
+                                    </div>
                                 {% endif %}
-                            </p>
-                            <p class="card-text text-center text-muted small mb-1">
-                                영상: {{ person.video_count }}개
-                            </p>
-                            <p class="card-text mb-1 small text-center person-years">
-                                {% if person.birth_year %}{{ person.birth_year }}년 출생 {% endif %}
-                            </p>
-                            <p class="card-text mb-1 small text-center person-attributes">
-                                {% if person.looks %}<span class="badge bg-secondary me-1 person-looks">{{ person.looks }}</span>{% endif %}
-                            </p>
-                            {% if person.tags.all %}
-                                <div class="mb-2 text-center person-tags">
-                                    {% for tag in person.tags.all %}
-                                        <a href="{% url 'persons:korean_person_list' %}?tag={{ tag.name|urlencode }}" class="tag-badge-link">
-                                            <span class="tag-badge">{{ tag.name }}</span>
-                                        </a>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                            {% if person.description %}
-                                <p class="card-text small text-truncate-2-lines text-center mt-2 person-description">{{ person.description }}</p>
-                            {% endif %}
+                                {% if person.description %}
+                                    <p class="card-text small text-truncate-2-lines text-center mt-2 person-description">{{ person.description }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="mt-2 text-center">
+                                <small class="text-muted" title="{{ person.updated_at|date:"Y-m-d H:i" }}">수정: {{ person.updated_at|date:"y.m.d" }}</small>
+                            </div>
                         </div>
                     </div>
                 </div>

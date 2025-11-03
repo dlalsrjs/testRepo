@@ -9,8 +9,10 @@ class JapaneseWorkAdmin(admin.ModelAdmin):
     search_fields = ('product_number', 'rating', 'actors__name', 'tags__name')
     list_filter = ('release_year', 'work_hardness')
     filter_horizontal = ('actors', 'tags')
-    # 'actors' 필드에 자동 완성 기능 추가
     autocomplete_fields = ['actors']
+
+    class Media:
+        js = ('videos/url_validation.js',) # 이 줄을 추가합니다.
 
 @admin.register(KoreanVideo)
 class KoreanVideoAdmin(admin.ModelAdmin):
@@ -18,12 +20,14 @@ class KoreanVideoAdmin(admin.ModelAdmin):
     search_fields = ('urls', 'description', 'persons__name', 'themes__name', 'tags__name')
     list_filter = ('date', 'edited')
     filter_horizontal = ('persons', 'themes', 'tags')
-    # 'persons' 필드에 자동 완성 기능 추가
     autocomplete_fields = ['persons']
 
     def get_first_url(self, obj):
         return obj.urls[0] if obj.urls else "No URL"
     get_first_url.short_description = '대표 URL'
+
+    class Media:
+        js = ('videos/url_validation.js',) # 이 줄을 추가합니다.
 
 @admin.register(LocalVideo)
 class LocalVideoAdmin(admin.ModelAdmin):

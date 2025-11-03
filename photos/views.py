@@ -39,7 +39,8 @@ def japanese_photo_list(request):
     if sort_by == 'random':
         photo_sets = photo_sets.order_by('?')
     else:
-        sort_field = sort_by if sort_by in ['year', 'created_at'] else 'year'
+        # 'updated_at' 정렬 조건 추가
+        sort_field = sort_by if sort_by in ['year', 'created_at', 'updated_at'] else 'year'
         order_expression = F(sort_field).desc(nulls_last=True) if order == 'desc' else F(sort_field).asc(nulls_last=True)
         photo_sets = photo_sets.order_by(order_expression)
 
@@ -50,7 +51,12 @@ def japanese_photo_list(request):
     for item in page_obj:
         item.first_image = item.first_image_list[0] if item.first_image_list else None
 
-    sort_options = [{'key': 'year', 'value': '연도'}, {'key': 'created_at', 'value': '최신순'}]
+    # 정렬 옵션에 '수정일' 추가
+    sort_options = [
+        {'key': 'year', 'value': '연도'}, 
+        {'key': 'created_at', 'value': '생성일'},
+        {'key': 'updated_at', 'value': '수정일'},
+    ]
     base_params = {k: v for k, v in request.GET.items() if k != 'page'}
 
     context = {
@@ -95,7 +101,8 @@ def korean_photo_list(request):
     if sort_by == 'random':
         photo_sets = photo_sets.order_by('?')
     else:
-        sort_field = sort_by if sort_by in ['year', 'created_at'] else 'year'
+        # 'updated_at' 정렬 조건 추가
+        sort_field = sort_by if sort_by in ['year', 'created_at', 'updated_at'] else 'year'
         order_expression = F(sort_field).desc(nulls_last=True) if order == 'desc' else F(sort_field).asc(nulls_last=True)
         photo_sets = photo_sets.order_by(order_expression)
 
@@ -106,7 +113,12 @@ def korean_photo_list(request):
     for item in page_obj:
         item.first_image = item.first_image_list[0] if item.first_image_list else None
 
-    sort_options = [{'key': 'year', 'value': '연도'}, {'key': 'created_at', 'value': '최신순'}]
+    # 정렬 옵션에 '수정일' 추가
+    sort_options = [
+        {'key': 'year', 'value': '연도'}, 
+        {'key': 'created_at', 'value': '생성일'},
+        {'key': 'updated_at', 'value': '수정일'},
+    ]
     base_params = {k: v for k, v in request.GET.items() if k != 'page'}
 
     context = {

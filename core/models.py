@@ -2,6 +2,7 @@ from django.db import models
 
 class JapaneseWorkTagType(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="유형명")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
 
     class Meta:
         verbose_name = "일본 작품 태그 유형"
@@ -23,6 +24,7 @@ class JapaneseWorkTag(models.Model):
     )
     # '설명' 필드 추가
     description = models.TextField(null=True, blank=True, verbose_name="설명")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
 
     class Meta:
         verbose_name = "일본 작품 태그"
@@ -34,6 +36,7 @@ class JapaneseWorkTag(models.Model):
 class KoreanPersonTag(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="태그명")
     image = models.ImageField(upload_to='tags/korean_person_tags/', null=True, blank=True, verbose_name="이미지")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
 
     class Meta:
         verbose_name = "한국 인물 태그"
@@ -45,6 +48,7 @@ class KoreanPersonTag(models.Model):
 class KoreanVideoTheme(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="태그명")
     image = models.ImageField(upload_to='tags/korean_video_themes/', null=True, blank=True, verbose_name="이미지")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
 
     class Meta:
         verbose_name = "한국 영상 주제"
@@ -56,6 +60,7 @@ class KoreanVideoTheme(models.Model):
 class KoreanVideoTag(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="태그명")
     image = models.ImageField(upload_to='tags/korean_video_tags/', null=True, blank=True, verbose_name="이미지")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
 
     class Meta:
         verbose_name = "한국 영상 태그"
@@ -66,7 +71,8 @@ class KoreanVideoTag(models.Model):
 
 class JapanesePhotoTag(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="태그명")
-    
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
+
     class Meta:
         verbose_name = "일본 사진 태그"
         verbose_name_plural = "일본 사진 태그들"
@@ -76,6 +82,7 @@ class JapanesePhotoTag(models.Model):
 
 class KoreanPhotoTag(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="태그명")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
 
     class Meta:
         verbose_name = "한국 사진 태그"

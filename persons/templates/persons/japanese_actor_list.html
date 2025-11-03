@@ -79,29 +79,33 @@
                             </button>
                         </div>
                         <div class="actor-details p-3">
-                            <h5 class="card-title text-center mb-1 actor-name">{{ actor.name }}</h5>
-                            {# 작품 수 표시 추가 #}
-                            <p class="card-text text-center text-muted small mb-1">
-                                작품: {{ actor.work_count }}개
-                            </p>
-                            <p class="card-text text-muted mb-1 small text-center actor-other-names">
-                                {% if actor.other_names %}
-                                    {{ actor.other_names|join:", " }}
-                                {% else %}
-                                    다른 이름 없음
+                            <div>
+                                <h5 class="card-title text-center mb-1 actor-name">{{ actor.name }}</h5>
+                                <p class="card-text text-center text-muted small mb-1">
+                                    작품: {{ actor.work_count }}개
+                                </p>
+                                <p class="card-text text-muted mb-1 small text-center actor-other-names">
+                                    {% if actor.other_names %}
+                                        {{ actor.other_names|join:", " }}
+                                    {% else %}
+                                        다른 이름 없음
+                                    {% endif %}
+                                </p>
+                                <p class="card-text mb-1 small text-center actor-years">
+                                    {% if actor.birth_year %}{{ actor.birth_year }}년 출생 {% endif %}
+                                    {% if actor.debut_year %}| {{ actor.debut_year }}년 데뷔 {% endif %}
+                                </p>
+                                <p class="card-text mb-1 small text-center actor-attributes">
+                                    {% if actor.looks %}<span class="badge bg-secondary me-1 actor-looks">{{ actor.looks }}</span>{% endif %}
+                                    {% if actor.hardness %}<span class="badge bg-info actor-hardness">{{ actor.hardness }}/5</span>{% endif %}
+                                </p>
+                                {% if actor.description %}
+                                    <p class="card-text small text-truncate-2-lines text-center mt-2 actor-description">{{ actor.description }}</p>
                                 {% endif %}
-                            </p>
-                            <p class="card-text mb-1 small text-center actor-years">
-                                {% if actor.birth_year %}{{ actor.birth_year }}년 출생 {% endif %}
-                                {% if actor.debut_year %}| {{ actor.debut_year }}년 데뷔 {% endif %}
-                            </p>
-                            <p class="card-text mb-1 small text-center actor-attributes">
-                                {% if actor.looks %}<span class="badge bg-secondary me-1 actor-looks">{{ actor.looks }}</span>{% endif %}
-                                {% if actor.hardness %}<span class="badge bg-info actor-hardness">{{ actor.hardness }}/5</span>{% endif %}
-                            </p>
-                            {% if actor.description %}
-                                <p class="card-text small text-truncate-2-lines text-center mt-2 actor-description">{{ actor.description }}</p>
-                            {% endif %}
+                            </div>
+                            <div class="mt-2 text-center">
+                                <small class="text-muted" title="{{ actor.updated_at|date:"Y-m-d H:i" }}">수정: {{ actor.updated_at|date:"y.m.d" }}</small>
+                            </div>
                         </div>
                     </div>
                 </div>

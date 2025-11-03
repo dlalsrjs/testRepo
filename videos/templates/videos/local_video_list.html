@@ -58,20 +58,25 @@
                             </button>
                         </div>
                         <div class="video-details p-3">
-                            <h5 class="card-title text-center mb-1 video-uuid">
-                                <small class="text-muted d-block">UUID</small>{{ video.uuid }}
-                            </h5>
-                            {% if video.description %}<p class="card-text text-center mb-2 small text-truncate-1-line video-description"><strong>설명:</strong> {{ video.description }}</p>{% endif %}
-                            {% if video.persons.all %}
-                                <div class="mb-2 text-center video-persons">
-                                    <small class="text-muted d-block">인물</small>
-                                    {% for person in video.persons.all %}
-                                        <a href="{% url 'persons:korean_person_list' %}?q={{ person.name|urlencode }}" class="person-badge-link">
-                                            <span class="person-badge">{{ person.name }}</span>
-                                        </a>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
+                            <div>
+                                <h5 class="card-title text-center mb-1 video-uuid">
+                                    <small class="text-muted d-block">UUID</small>{{ video.uuid }}
+                                </h5>
+                                {% if video.description %}<p class="card-text text-center mb-2 small text-truncate-1-line video-description"><strong>설명:</strong> {{ video.description }}</p>{% endif %}
+                                {% if video.persons.all %}
+                                    <div class="mb-2 text-center video-persons">
+                                        <small class="text-muted d-block">인물</small>
+                                        {% for person in video.persons.all %}
+                                            <a href="{% url 'persons:korean_person_list' %}?q={{ person.name|urlencode }}" class="person-badge-link">
+                                                <span class="person-badge">{{ person.name }}</span>
+                                            </a>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                             <div class="mt-2 text-center">
+                                <small class="text-muted" title="{{ video.updated_at|date:"Y-m-d H:i" }}">수정: {{ video.updated_at|date:"y.m.d" }}</small>
+                            </div>
                         </div>
                     </div>
                 </div>

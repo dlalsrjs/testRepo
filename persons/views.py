@@ -47,7 +47,8 @@ def japanese_actor_list(request):
         )
         order_expression = looks_order.desc() if order == 'desc' else looks_order.asc()
         actors = actors.order_by(order_expression, 'name')
-    elif sort_by in ['name', 'birth_year', 'debut_year', 'hardness', 'work_count']:
+    # 'updated_at' 정렬 조건 추가
+    elif sort_by in ['name', 'birth_year', 'debut_year', 'hardness', 'work_count', 'updated_at']:
         order_expression = F(sort_by).desc(nulls_last=True) if order == 'desc' else F(sort_by).asc(nulls_last=True)
         actors = actors.order_by(order_expression, 'name')
     else:
@@ -57,10 +58,12 @@ def japanese_actor_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # 정렬 옵션에 '수정일' 추가
     sort_options = [
         {'key': 'name', 'value': '이름'}, {'key': 'birth_year', 'value': '출생연도'},
         {'key': 'debut_year', 'value': '데뷔연도'}, {'key': 'work_count', 'value': '작품 개수'},
         {'key': 'looks', 'value': '외모'}, {'key': 'hardness', 'value': '하드함'},
+        {'key': 'updated_at', 'value': '수정일'},
     ]
     
     looks_choices = [
@@ -118,7 +121,8 @@ def korean_person_list(request):
         )
         order_expression = looks_order_case.desc() if order == 'desc' else looks_order_case.asc()
         persons = persons.order_by(order_expression, 'name')
-    elif sort_by in ['name', 'birth_year', 'video_count']:
+    # 'updated_at' 정렬 조건 추가
+    elif sort_by in ['name', 'birth_year', 'video_count', 'updated_at']:
         order_expression = F(sort_by).desc(nulls_last=True) if order == 'desc' else F(sort_by).asc(nulls_last=True)
         persons = persons.order_by(order_expression, 'name')
     else:
@@ -128,9 +132,11 @@ def korean_person_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # 정렬 옵션에 '수정일' 추가
     sort_options = [
         {'key': 'name', 'value': '이름'}, {'key': 'birth_year', 'value': '출생연도'},
         {'key': 'looks', 'value': '외모'}, {'key': 'video_count', 'value': '영상 개수'},
+        {'key': 'updated_at', 'value': '수정일'},
     ]
     
     looks_choices = [
@@ -147,7 +153,6 @@ def korean_person_list(request):
     }
     return render(request, 'persons/korean_person_list.html', context)
 
-# 배우 수정 모달을 위한 함수 (GET 요청)
 def edit_japanese_actor(request, pk):
     actor = get_object_or_404(JapaneseActor, pk=pk)
     if request.method == 'POST':

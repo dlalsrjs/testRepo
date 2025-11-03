@@ -1,0 +1,23 @@
+{# /board/templates/board/post_confirm_delete.html #}
+{% extends 'base.html' %}
+
+{% block title %}게시글 삭제 확인{% endblock %}
+
+{% block content %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">게시글 삭제 확인</h5>
+        </div>
+        <div class="card-body">
+            <p class="fs-5">"<strong>{{ object.title }}</strong>" 글을 정말로 삭제하시겠습니까?</p>
+            <p class="text-danger">이 작업은 되돌릴 수 없습니다.</p>
+        </div>
+        <div class="card-footer text-end">
+            <form method="post">
+                {% csrf_token %}
+                <a href="{% url 'board:post_detail' pk=object.pk %}" class="btn btn-secondary">취소</a>
+                <button type="submit" class="btn btn-danger">삭제 확인</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

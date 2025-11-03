@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.db.models import Q, Count, Subquery, OuterRef, Min, Case, When, Value, IntegerField, F
 from django.core.paginator import Paginator
 from django.db.models.functions import Coalesce, ExtractYear
-import urllib
+import urllib, json
 
 from .models import JapaneseWork, KoreanVideo, LocalVideo
 from .forms import JapaneseWorkForm, KoreanVideoForm, LocalVideoForm
@@ -57,7 +57,8 @@ def japanese_work_list(request):
     if sort_by == 'random':
         works_qs = works_qs.order_by('?')
     else:
-        sort_field = sort_by if sort_by in ['product_number', 'release_year', 'work_hardness', 'age_at_release'] else 'release_year'
+        # 'updated_at' 정렬 조건 추가
+        sort_field = sort_by if sort_by in ['product_number', 'release_year', 'work_hardness', 'age_at_release', 'updated_at'] else 'release_year'
         order_expression = F(sort_field).desc(nulls_last=True) if order == 'desc' else F(sort_field).asc(nulls_last=True)
         works_qs = works_qs.order_by(order_expression, '-pk')
 
@@ -65,9 +66,11 @@ def japanese_work_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # 정렬 옵션에 '수정일' 추가
     sort_options = [
         {'key': 'product_number', 'value': '품번'}, {'key': 'release_year', 'value': '출시 연도'},
         {'key': 'work_hardness', 'value': '하드함'}, {'key': 'age_at_release', 'value': '당시 나이'},
+        {'key': 'updated_at', 'value': '수정일'},
     ]
 
     base_params = {k: v for k, v in request.GET.items() if k != 'page'}
@@ -125,7 +128,8 @@ def korean_video_list(request):
     if sort_by == 'random':
         videos_qs = videos_qs.order_by('?')
     else:
-        sort_field = sort_by if sort_by in ['date', 'age_at_release'] else 'date'
+        # 'updated_at' 정렬 조건 추가
+        sort_field = sort_by if sort_by in ['date', 'age_at_release', 'updated_at'] else 'date'
         order_expression = F(sort_field).desc(nulls_last=True) if order == 'desc' else F(sort_field).asc(nulls_last=True)
         videos_qs = videos_qs.order_by(order_expression, '-pk')
 
@@ -133,7 +137,11 @@ def korean_video_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    sort_options = [{'key': 'date', 'value': '날짜'}, {'key': 'age_at_release', 'value': '당시 나이'}]
+    # 정렬 옵션에 '수정일' 추가
+    sort_options = [
+        {'key': 'date', 'value': '날짜'}, {'key': 'age_at_release', 'value': '당시 나이'},
+        {'key': 'updated_at', 'value': '수정일'},
+    ]
     
     base_params = {k: v for k, v in request.GET.items() if k != 'page'}
     context = {
@@ -161,15 +169,19 @@ def local_video_list(request):
     if sort_by == 'random':
         videos = videos.order_by('?')
     else:
-        order_expression = F(sort_by).desc(nulls_last=True) if order == 'desc' else F(sort_by).asc(nulls_last=True)
+        # 'updated_at' 정렬 조건 추가
+        sort_field = sort_by if sort_by in ['uuid', 'updated_at'] else 'uuid'
+        order_expression = F(sort_field).desc(nulls_last=True) if order == 'desc' else F(sort_field).asc(nulls_last=True)
         videos = videos.order_by(order_expression)
 
     paginator = Paginator(videos, 12)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # 정렬 옵션에 '수정일' 추가
     sort_options = [
         {'key': 'uuid', 'value': 'UUID'},
+        {'key': 'updated_at', 'value': '수정일'},
     ]
     
     base_params = {k: v for k, v in request.GET.items() if k != 'page'}
@@ -252,3 +264,36 @@ def delete_local_video(request, pk):
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'삭제 중 오류 발생: {str(e)}'}, status=400)
     return JsonResponse({'success': False, 'message': '잘못된 요청입니다.'}, status=405)
+
+def check_duplicate_url(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            urls = data.get('urls', [])
+            model_name = data.get('model_name', '')
+            current_id = data.get('current_id') # 수정 시 자기 자신은 제외하기 위한 ID
+
+            if not urls or not model_name:
+                return JsonResponse({'error': '필수 데이터가 누락되었습니다.'}, status=400)
+
+            duplicates = []
+            if model_name == 'japanesework':
+                queryset = JapaneseWork.objects.all()
+                if current_id:
+                    queryset = queryset.exclude(pk=current_id)
+                for url in urls:
+                    if queryset.filter(urls__contains=[url]).exists():
+                        duplicates.append(url)
+
+            elif model_name == 'koreanvideo':
+                queryset = KoreanVideo.objects.all()
+                if current_id:
+                    queryset = queryset.exclude(pk=current_id)
+                for url in urls:
+                    if queryset.filter(urls__contains=[url]).exists():
+                        duplicates.append(url)
+
+            return JsonResponse({'duplicates': duplicates})
+        except json.JSONDecodeError:
+            return JsonResponse({'error': '잘못된 JSON 형식입니다.'}, status=400)
+    return JsonResponse({'error': '잘못된 요청 방식입니다.'}, status=405)

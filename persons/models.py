@@ -13,6 +13,7 @@ class JapaneseActor(models.Model):
     hardness = models.IntegerField(null=True, blank=True, verbose_name="하드함")
     description = models.TextField(null=True, blank=True, verbose_name="설명")
     image = models.ImageField(upload_to='actors/japanese_actors/', null=True, blank=True, verbose_name="이미지")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
 
     class Meta:
         verbose_name = "일본 배우"
@@ -31,6 +32,7 @@ class KoreanPerson(models.Model):
     description = models.TextField(null=True, blank=True, verbose_name="설명")
     looks = models.CharField(max_length=10, null=True, blank=True, verbose_name="외모")
     tags = models.ManyToManyField('core.KoreanPersonTag', blank=True, verbose_name="태그")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="수정일")
 
     class Meta:
         verbose_name = "한국 인물"

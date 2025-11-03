@@ -16,4 +16,6 @@ urlpatterns = [
     path('japanese_works/<int:pk>/delete/', views.delete_japanese_work, name='delete_japanese_work'),
     path('korean_videos/<int:pk>/delete/', views.delete_korean_video, name='delete_korean_video'),
     path('local_videos/<uuid:pk>/delete/', views.delete_local_video, name='delete_local_video'),
+
+    path('check-duplicate-url/', views.check_duplicate_url, name='check_duplicate_url'),
 ]
